@@ -16,7 +16,7 @@ a = Analysis(
         ("assets/icon.ico", "assets"),
     ] + selenium_datas,
     hiddenimports=["main"] + selenium_hidden,             # `app.py --scrape` importa main.py em tempo de execução
-    excludes=["pytest", "unittest.mock", "PIL", "fontTools", "brotli"],
+    excludes=["pytest", "unittest.mock", "fontTools", "brotli"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)

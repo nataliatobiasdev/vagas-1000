@@ -2,7 +2,8 @@
 
 Uso: app.bat (abre sem console) ou python app.py. Instalado: vagas1000.exe.
 O status vem de out/status.json, gravado pelo runner a cada empresa.
-Visual: design system Nevora (tokens em scraper/theme.py).
+Visual: design system Nevora, no acabamento macio do CAM (cantos arredondados anti-aliasados, sombras
+suaves, ícones e pílulas, pintados com Pillow em scraper/gfx.py; tokens em scraper/theme.py).
 """
 from __future__ import annotations
 
@@ -14,14 +15,15 @@ import subprocess
 import sys
 import time
 import tkinter as tk
+import tkinter.font as tkfont
 import urllib.request
 from datetime import datetime
 from pathlib import Path
 from tkinter import messagebox
 
-from scraper import paths
+from scraper import gfx, paths
 from scraper.theme import (ACCENT, ACCENT_FG, BG, BORDER, DANGER, FIELD, FG, FONT_BODY, FONT_BODY_SB,
-                           FONT_HEAD, FONT_MONO, MUTED, MUTED_2, PANEL, SUBTLE, TEAL, gradient, tint)
+                           FONT_HEAD, FONT_MONO, MUTED, MUTED_2, PANEL, SUBTLE, TEAL, tint)
 from scraper.version import __version__
 
 APP_NAME = "vagas1000"
@@ -58,73 +60,108 @@ def _parse(ts):
         return None
 
 
-class Btn(tk.Frame):
-    """Botão plano no estilo "Linear precision" do Nevora: borda de 1 px e estados hover/disabled."""
+class CText:
+    """Texto do canvas com a mesma interface `.config(text=, fg=)` dos Labels: o resto do app não muda."""
 
-    VARIANTS = {
-        "primary": dict(bg=ACCENT, hover=tint("#FFFFFF", 0.14, ACCENT), fg=ACCENT_FG, border=ACCENT,
-                        dis_bg=tint(ACCENT, 0.35, PANEL), dis_fg=tint(ACCENT_FG, 0.55, PANEL)),
-        "secondary": dict(bg=PANEL, hover=SUBTLE, fg=FG, border=BORDER, dis_bg=PANEL, dis_fg=MUTED_2),
-        "teal": dict(bg=PANEL, hover=SUBTLE, fg=TEAL, border=tint(TEAL, 0.45, PANEL),
-                     dis_bg=PANEL, dis_fg=MUTED_2),
-    }
-
-    def __init__(self, master, text, command, variant="secondary", font=None, padx=16, pady=8):
-        v = self.v = self.VARIANTS[variant]
-        super().__init__(master, bg=v["bg"], highlightthickness=1, highlightbackground=v["border"],
-                         highlightcolor=ACCENT, bd=0, cursor="hand2", takefocus=1)
-        self.command = command
-        self.enabled = True
-        self.label = tk.Label(self, text=text, bg=v["bg"], fg=v["fg"], font=font or FONT_BODY_SB(10),
-                              padx=padx, pady=pady, bd=0)
-        self.label.pack()
-        for w in (self, self.label):
-            w.bind("<Enter>", lambda e: self._paint(hover=True))
-            w.bind("<Leave>", lambda e: self._paint())
-            w.bind("<Button-1>", self._click)
-        self.bind("<Return>", self._click)
-        self.bind("<space>", self._click)
-
-    def _paint(self, hover=False):
-        v = self.v
-        if not self.enabled:
-            bg, fg = v["dis_bg"], v["dis_fg"]
-        else:
-            bg, fg = (v["hover"] if hover else v["bg"]), v["fg"]
-        tk.Frame.configure(self, bg=bg)
-        self.label.configure(bg=bg, fg=fg)
-
-    def _click(self, _e=None):
-        if self.enabled and self.command:
-            self.command()
-
-    def config(self, **kw):                   # compatível com o uso de tk.Button.config(state=, text=)
-        if "text" in kw:
-            self.label.configure(text=kw.pop("text"))
-        if "state" in kw:
-            self.enabled = kw.pop("state") != "disabled"
-            tk.Frame.configure(self, cursor="hand2" if self.enabled else "arrow")
-            self._paint()
-        if kw:
-            tk.Frame.configure(self, **kw)
-
-    configure = config
-
-
-class Badge(tk.Label):
-    """Pílula semântica (sucesso/erro/neutra): o tom vem do `fg` que o app pede."""
-
-    def __init__(self, master):
-        super().__init__(master, text="", bg=PANEL, fg=MUTED, font=FONT_MONO(9), padx=9, pady=2, bd=0)
+    def __init__(self, canvas: tk.Canvas, text: str = "", fg: str = FG):
+        self.canvas, self.text, self.fg, self.item = canvas, text, fg, None
 
     def config(self, **kw):
-        text = kw.get("text", self.cget("text"))
-        color = kw.get("fg", self.cget("fg"))
-        if "text" in kw or "fg" in kw:
-            kw["bg"] = PANEL if not text else (SUBTLE if color == MUTED else tint(color, 0.16, PANEL))
-        tk.Label.configure(self, **kw)
+        if "text" in kw:
+            self.text = kw["text"]
+        if "fg" in kw:
+            self.fg = kw["fg"]
+        if self.item is not None:
+            self.canvas.itemconfigure(self.item, text=self.text, fill=self.fg)
 
     configure = config
+
+
+class CBtn:
+    """Botão arredondado (raio 10, borda de 1 px, brilho interno e sombra suave) desenhado sobre a cena."""
+
+    VARIANTS = {
+        "primary": dict(fill=ACCENT, grad=("#B7AAFF", ACCENT), border="#CFC7FF", fg=ACCENT_FG, shadow=0.45,
+                        hover_grad=("#C6BCFF", "#A99AFF"), icon=ACCENT_FG),
+        "secondary": dict(fill=PANEL, grad=None, border=BORDER, fg=FG, shadow=0.25, hover_fill=SUBTLE,
+                          hover_border=tint(MUTED, 0.4, BORDER), icon=FG),
+        "teal": dict(fill=PANEL, grad=None, border=tint(TEAL, 0.45, PANEL), fg=TEAL, shadow=0.25,
+                     hover_fill=SUBTLE, hover_border=tint(TEAL, 0.75, PANEL), icon=TEAL),
+    }
+
+    def __init__(self, app, key: str, text: str, command, variant="secondary", icon: str | None = None,
+                 big: bool = False):
+        self.app, self.key, self.text, self.command = app, key, text, command
+        self.variant, self.icon, self.big = variant, icon, big
+        self.enabled, self.hover = True, False
+        self.images: dict[str, tk.PhotoImage] = {}
+        self.img_item = self.txt_item = None
+        self.box = (0, 0, 0, 0)
+
+    # --- API compatível com tk.Button.config(state=, text=)
+    def config(self, **kw):
+        relayout = False
+        if "text" in kw and kw["text"] != self.text:
+            self.text, relayout = kw["text"], True
+        if "state" in kw:
+            self.enabled = kw["state"] != "disabled"
+            if not self.enabled:
+                self.hover = False
+        if relayout:
+            self.app.schedule_layout(0)
+        else:
+            self.paint()
+
+    configure = config
+
+    def font(self):
+        return FONT_BODY_SB(12 if self.big else 10)
+
+    def width(self, u) -> int:
+        icon_w = u(18) + u(8) if self.icon else 0
+        return u(36 if self.big else 28) + icon_w + self.app.measure(self.font(), self.text)
+
+    def build(self, scene, x: int, y: int, w: int, h: int, u):
+        """Guarda a geometria e gera o estado normal; hover e desativado saem sob demanda (mais rápido)."""
+        self.scene, self.box, self.u = scene, (x, y, w, h), u
+        self.images = {}
+        self.image("normal")
+        return u(10)
+
+    def image(self, state: str):
+        if state in self.images:
+            return self.images[state]
+        x, y, w, h = self.box
+        u, v = self.u, self.VARIANTS[self.variant]
+        pad = u(10)
+        fill, border, grad = v["fill"], v["border"], v["grad"]
+        if state == "hover":
+            fill, border = v.get("hover_fill", fill), v.get("hover_border", border)
+            grad = v.get("hover_grad", grad)
+        if state == "disabled":
+            if self.variant == "primary":
+                fill, grad, border = tint(ACCENT, 0.3, PANEL), None, tint(ACCENT, 0.3, PANEL)
+            else:
+                fill = PANEL
+        sprite = gfx.surface(w, h, u(10), fill, border, highlight=0.35 if self.variant == "primary" else 0.07,
+                             gradient=grad, shadow=(u(8), u(2), v["shadow"]) if state != "disabled" else None, pad=pad)
+        if self.icon:
+            icon_color = MUTED_2 if state == "disabled" else v["icon"]
+            if state == "disabled" and self.variant == "primary":
+                icon_color = tint(ACCENT_FG, 0.55, PANEL)
+            sprite.alpha_composite(gfx.icon(self.icon, u(18), icon_color),
+                                   (pad + u(16 if self.big else 14), pad + (h - u(18)) // 2))
+        self.images[state] = tk.PhotoImage(data=gfx.to_photo_data(gfx.over(self.scene, sprite, x - pad, y - pad)))
+        return self.images[state]
+
+    def paint(self):
+        if self.img_item is None:
+            return
+        v = self.VARIANTS[self.variant]
+        state = "disabled" if not self.enabled else ("hover" if self.hover else "normal")
+        fg = v["fg"] if self.enabled else (tint(ACCENT_FG, 0.55, PANEL) if self.variant == "primary" else MUTED_2)
+        self.app.canvas.itemconfigure(self.img_item, image=self.image(state))
+        self.app.canvas.itemconfigure(self.txt_item, fill=fg)
 
 
 class Vagas1000App:
@@ -141,13 +178,18 @@ class Vagas1000App:
         self.li_log = None
         self.li_finished = False
         self.mode = None             # "update" | "linkedin"
+        self._frac = 0.0
+        self._cover_letter = "—"
+        self._layout_job = None
+        self._size = (0, 0)
+        self._fonts: dict = {}
+        self.scale = root.winfo_fpixels("1i") / 96                # escala do Windows (100% = 1,0)
         root.title(APP_NAME)
-        s = root.winfo_fpixels("1i") / 96                          # escala do Windows (100% = 1,0)
         sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
-        w, h = min(int(1040 * s), sw - 60), min(int(640 * s), sh - 90)
+        w, h = min(int(1040 * self.scale), sw - 60), min(int(680 * self.scale), sh - 90)
         x, y = max(0, (sw - w) // 2), max(0, (sh - h) // 3)
         root.geometry(f"{w}x{h}+{x}+{y}")                          # centralizada, sem cair para fora da tela
-        root.minsize(min(int(960 * s), w), min(int(600 * s), h))
+        root.minsize(min(int(980 * self.scale), w), min(int(620 * self.scale), h))
         root.configure(bg=BG)
         try:
             ico = BUNDLE / "assets" / "icon.ico"
@@ -160,127 +202,220 @@ class Vagas1000App:
         self._restore_log()
         root.after(400, self._poll)
 
+    # ------------------------------------------------------------------ medidas
+    def u(self, v: float) -> int:
+        return max(1, round(v * self.scale)) if v else 0
+
+    def measure(self, font, text: str) -> int:
+        key = tuple(font)
+        if key not in self._fonts:
+            self._fonts[key] = tkfont.Font(root=self.root, family=font[0], size=font[1])
+        return self._fonts[key].measure(text)
+
     # ------------------------------------------------------------------ UI
-    @staticmethod
-    def _card(parent):
-        return tk.Frame(parent, bg=PANEL, highlightthickness=1, highlightbackground=BORDER, bd=0)
-
     def _build(self):
-        head = tk.Frame(self.root, bg=BG)
-        head.pack(fill="x", padx=28, pady=(24, 4))
-        self.mark = tk.Canvas(head, width=40, height=40, bg=BG, highlightthickness=0)
-        self.mark.pack(side="left", padx=(0, 14))
-        self._draw_mark()
-        titles = tk.Frame(head, bg=BG)
-        titles.pack(side="left")
-        tk.Label(titles, text=APP_NAME, bg=BG, fg=FG, font=FONT_HEAD(22)).pack(anchor="w")
-        self.sub = tk.Label(titles, text="base local", bg=BG, fg=MUTED, font=FONT_BODY(10))
-        self.sub.pack(anchor="w", pady=(1, 0))
-        tk.Label(head, text=f"v{__version__}", bg=SUBTLE, fg=MUTED, font=FONT_MONO(9),
-                 padx=9, pady=3).pack(side="right")
-
-        stats = tk.Frame(self.root, bg=BG)
-        stats.pack(fill="x", padx=28, pady=(18, 10))
-        self.cards = {}
-        specs = (("open", "vagas abertas"), ("eligible", "elegíveis"), ("companies", "empresas"))
-        for i, (key, label) in enumerate(specs):
-            card = self._card(stats)
-            card.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else 12, 0))
-            stats.grid_columnconfigure(i, weight=1, uniform="stat")
-            tk.Label(card, text=label.upper(), bg=PANEL, fg=MUTED, anchor="w",
-                     font=FONT_MONO(8)).pack(anchor="w", padx=16, pady=(12, 0))
-            num = tk.Label(card, text="—", bg=PANEL, fg=ACCENT if key == "eligible" else FG, anchor="w",
-                           font=FONT_HEAD(26))
-            num.pack(anchor="w", padx=16, pady=(0, 12))
-            self.cards[key] = num
-
-        actions = tk.Frame(self.root, bg=BG)
-        actions.pack(fill="x", padx=28, pady=(6, 12))
-        self.btn_run = Btn(actions, "Atualizar base", self.start_run, "primary",
-                           font=FONT_BODY_SB(12), padx=22, pady=9)
-        self.btn_run.pack(side="left")
-        self.btn_li = Btn(actions, "Buscar no LinkedIn", self.start_linkedin, "teal", padx=16, pady=9)
+        self.canvas = tk.Canvas(self.root, bg=BG, highlightthickness=0, bd=0)
+        self.canvas.pack(fill="both", expand=True)
+        c = self.canvas
+        self.sub = CText(c, "base local", MUTED)
+        self.now = CText(c, "Pronto", FG)
+        self.detail = CText(c, "clique em Atualizar base", MUTED)
+        self.time = CText(c, "", MUTED)
+        self.cards = {k: CText(c, "—", ACCENT if k == "eligible" else FG) for k in ("open", "eligible", "companies")}
+        self.badge = self._Badge(self)
+        self.btn_run = CBtn(self, "run", "Atualizar base", self.start_run, "primary", "refresh", big=True)
+        self.btn_li = CBtn(self, "li", "Buscar no LinkedIn", self.start_linkedin, "teal", "linkedin")
+        self.buttons = [self.btn_run]
         if HAS_LINKEDIN:                       # o app instalado não inclui o módulo do LinkedIn
-            self.btn_li.pack(side="left", padx=(10, 0))
-        extras = [("Abrir painel", self.open_dashboard), ("Abrir presenciais", self.open_presenciais),
-                  ("Abrir pasta", self.open_folder)]
+            self.buttons.append(self.btn_li)
+        self.buttons.append(CBtn(self, "dash", "Abrir painel", self.open_dashboard, icon="layout"))
         if HAS_LINKEDIN:
-            extras.insert(1, ("Relatório LinkedIn", self.open_linkedin_report))
-        for label, cmd in extras:
-            Btn(actions, label, cmd, "secondary", padx=14, pady=9).pack(side="left", padx=(10, 0))
+            self.buttons.append(CBtn(self, "lir", "Relatório LinkedIn", self.open_linkedin_report, icon="briefcase"))
+        self.buttons.append(CBtn(self, "pres", "Abrir presenciais", self.open_presenciais, icon="pin"))
+        self.buttons.append(CBtn(self, "dir", "Abrir pasta", self.open_folder, icon="folder"))
+        self.log = tk.Text(c, bg=FIELD, fg=MUTED, bd=0, wrap="none", font=FONT_MONO(9), state="disabled",
+                           padx=4, pady=2, insertbackground=ACCENT, selectbackground=tint(ACCENT, 0.3, FIELD),
+                           highlightthickness=0, cursor="arrow")
+        self._photos: list = []
+        c.bind("<Configure>", lambda e: self.schedule_layout(60))
 
-        logbox = tk.Frame(self.root, bg=FIELD, highlightthickness=1, highlightbackground=BORDER)
-        logbox.pack(fill="both", expand=True, padx=28, pady=(0, 14))
-        self.log = tk.Text(logbox, bg=FIELD, fg=MUTED, bd=0, height=8, wrap="none", font=FONT_MONO(9),
-                           state="disabled", padx=12, pady=10, insertbackground=ACCENT,
-                           selectbackground=tint(ACCENT, 0.3, FIELD), highlightthickness=0)
-        self.log.pack(fill="both", expand=True)
+    class _Badge:
+        """Pílula semântica (sucesso/erro/neutra): o tom vem do `fg` que o app pede."""
 
-        # ------------------------------------------------- barra estilo player
-        self.bar = tk.Frame(self.root, bg=PANEL, height=108, highlightthickness=1, highlightbackground=BORDER)
-        self.bar.pack(fill="x", side="bottom")
-        self.bar.pack_propagate(False)
-        self.progress = tk.Canvas(self.bar, bg=PANEL, height=4, highlightthickness=0, bd=0)
-        self.progress.pack(fill="x", side="top")
-        self._frac = 0.0
-        self.progress.bind("<Configure>", lambda e: self._draw_progress())
+        def __init__(self, app):
+            self.app, self.text, self.fg = app, "", MUTED
 
-        body = tk.Frame(self.bar, bg=PANEL)
-        body.pack(fill="both", expand=True, padx=20, pady=(12, 8))
+        def config(self, **kw):
+            self.text, self.fg = kw.get("text", self.text), kw.get("fg", self.fg)
+            self.app._draw_badge()
 
-        self.cover = tk.Canvas(body, width=58, height=58, bg=PANEL, highlightthickness=0)
-        self.cover.pack(side="left")
-        self._draw_cover("—")
+        configure = config
 
-        mid = tk.Frame(body, bg=PANEL)
-        mid.pack(side="left", fill="both", expand=True, padx=(14, 10))
-        self.now = tk.Label(mid, text="Pronto", bg=PANEL, fg=FG, anchor="w", font=FONT_HEAD(14))
-        self.now.pack(anchor="w")
-        self.detail = tk.Label(mid, text="clique em Atualizar base", bg=PANEL, fg=MUTED, anchor="w",
-                               font=FONT_BODY(9))
-        self.detail.pack(anchor="w", pady=(2, 0))
+    def schedule_layout(self, delay: int = 60):
+        if self._layout_job:
+            self.root.after_cancel(self._layout_job)
+        self._layout_job = self.root.after(delay, self._layout)
 
-        right = tk.Frame(body, bg=PANEL)
-        right.pack(side="right")
-        self.time = tk.Label(right, text="", bg=PANEL, fg=MUTED, font=FONT_MONO(11))
-        self.time.pack(anchor="e")
-        self.badge = Badge(right)
-        self.badge.pack(anchor="e", pady=(4, 0))
-
-    @staticmethod
-    def _round_rect(c, x1, y1, x2, y2, r, **kw):
-        pts = [x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
-               x1, y2, x1, y2 - r, x1, y1 + r, x1, y1]
-        return c.create_polygon(pts, smooth=True, **kw)
-
-    def _draw_mark(self):
-        """Marca do app: lupa violeta→teal sobre um quadrado arredondado (mesma arte do ícone)."""
-        c = self.mark
+    def _layout(self):
+        """Pinta a cena (fundo atmosférico + cartões arredondados) e posiciona textos, botões e o log."""
+        self._layout_job = None
+        c, u = self.canvas, self.u
+        W, H = c.winfo_width(), c.winfo_height()
+        if W < 50 or H < 50:
+            return
+        self._size = (W, H)
         c.delete("all")
-        self._round_rect(c, 1, 1, 39, 39, 10, fill=PANEL, outline=BORDER)
-        cols = gradient(ACCENT, TEAL, 8)
-        for i, col in enumerate(cols):
-            c.create_arc(9, 8, 27, 26, start=i * 45, extent=46, style="arc", outline=col, width=3)
-        c.create_line(24, 24, 32, 32, fill=TEAL, width=3, capstyle="round")
+        self._photos = []
+        scene = gfx.atmosphere(W, H)
+        M = u(28)
+        gap = u(14)
+
+        # --- cabeçalho: marca em gradiente (como o "C" do CAM), título e versão
+        tile = u(46)
+        scene.alpha_composite(gfx.surface(tile, tile, u(13), ACCENT, None, gradient=(ACCENT, TEAL), diagonal=True,
+                                          highlight=0.28, shadow=(u(10), u(3), 0.4), pad=u(10)),
+                              (M - u(10), u(26) - u(10)))
+        scene.alpha_composite(gfx.icon("search", u(26), ACCENT_FG, 2.0), (M + (tile - u(26)) // 2, u(26) + (tile - u(26)) // 2))
+        tx = M + tile + u(14)
+        ver_w = self.measure(FONT_MONO(9), f"v{__version__}") + u(22)
+        pill = gfx.capsule(ver_w, u(24), SUBTLE)
+        scene.alpha_composite(pill, (W - M - ver_w, u(36)))
+
+        # --- cartões de números
+        top = u(104)
+        card_h = u(92)
+        card_w = (W - 2 * M - 2 * gap) // 3
+        specs = (("open", "vagas abertas", "briefcase", ACCENT), ("eligible", "elegíveis", "check", TEAL),
+                 ("companies", "empresas", "building", ACCENT))
+        for i, (key, label, ic, col) in enumerate(specs):
+            x = M + i * (card_w + gap)
+            scene.alpha_composite(gfx.surface(card_w, card_h, u(16), PANEL, BORDER, shadow=(u(18), u(6), 0.4), pad=u(22)),
+                                  (x - u(22), top - u(22)))
+            t = u(42)
+            scene.alpha_composite(gfx.surface(t, t, u(12), tint(col, 0.14, PANEL), tint(col, 0.3, PANEL), highlight=0.05),
+                                  (x + u(18), top + (card_h - t) // 2))
+            scene.alpha_composite(gfx.icon(ic, u(20), col), (x + u(18) + (t - u(20)) // 2, top + (card_h - t) // 2 + (t - u(20)) // 2))
+
+        # --- botões
+        by = top + card_h + u(20)
+        bh_small, bh_big = u(40), u(46)
+        bx = M
+        for b in self.buttons:
+            h = bh_big if b.big else bh_small
+            w = b.width(u)
+            y = by + (bh_big - h) // 2
+            b.build(scene, bx, y, w, h, u)
+            bx += w + u(10)
+
+        # --- área do log (campo arredondado) e card do player
+        player_h = u(108)
+        player_y = H - u(22) - player_h
+        log_y = by + bh_big + u(20)
+        log_h = max(player_y - u(18) - log_y, u(60))
+        scene.alpha_composite(gfx.surface(W - 2 * M, log_h, u(16), FIELD, BORDER, highlight=0.03),
+                              (M, log_y))
+        scene.alpha_composite(gfx.surface(W - 2 * M, player_h, u(18), PANEL, BORDER, shadow=(u(24), u(8), 0.5), pad=u(28)),
+                              (M - u(28), player_y - u(28)))
+        track_x, track_w = M + u(20), W - 2 * M - u(40)
+        self._track = (track_x, player_y + player_h - u(22), track_w, u(6))
+        scene.alpha_composite(gfx.capsule(track_w, u(6), SUBTLE), (track_x, self._track[1]))
+        self.scene = scene
+        self._geo = dict(M=M, W=W, H=H, player_y=player_y, player_h=player_h, top=top, card_w=card_w, card_h=card_h,
+                         gap=gap, tile=tile, ver_w=ver_w)
+
+        # --- fundo e elementos dinâmicos
+        self.bg_photo = tk.PhotoImage(data=gfx.to_photo_data(scene))
+        c.create_image(0, 0, image=self.bg_photo, anchor="nw")
+        self.sub.item = c.create_text(tx, u(26) + u(36), text=self.sub.text, fill=self.sub.fg, anchor="nw",
+                                      font=FONT_BODY(10))
+        c.create_text(tx, u(24), text=APP_NAME, fill=FG, anchor="nw", font=FONT_HEAD(22))
+        c.create_text(W - M - ver_w // 2, u(36) + u(12), text=f"v{__version__}", fill=MUTED, font=FONT_MONO(9))
+        for i, (key, label, ic, col) in enumerate(specs):
+            x = M + i * (card_w + gap)
+            tx2 = x + u(18) + u(42) + u(16)
+            c.create_text(tx2, top + u(22), text=label.upper(), fill=MUTED, anchor="nw", font=FONT_MONO(8))
+            item = self.cards[key]
+            item.item = c.create_text(tx2, top + u(38), text=item.text, fill=item.fg, anchor="nw", font=FONT_HEAD(26))
+        for b in self.buttons:
+            x, y, w, h = b.box
+            pad = u(10)
+            b.img_item = c.create_image(x - pad, y - pad, image=b.images["normal"], anchor="nw", tags=("btn", f"b_{b.key}"))
+            icon_w = (u(18) + u(8)) if b.icon else 0
+            left = x + (u(16 if b.big else 14) if b.icon else (w - self.measure(b.font(), b.text)) // 2)
+            b.txt_item = c.create_text(left + icon_w, y + h // 2, text=b.text, anchor="w", font=b.font(),
+                                       fill=b.VARIANTS[b.variant]["fg"], tags=("btn", f"b_{b.key}"))
+            b.paint()
+            for tag in (f"b_{b.key}",):
+                c.tag_bind(tag, "<Enter>", lambda e, b=b: self._btn_hover(b, True))
+                c.tag_bind(tag, "<Leave>", lambda e, b=b: self._btn_hover(b, False))
+                c.tag_bind(tag, "<Button-1>", lambda e, b=b: b.enabled and b.command())
+        pad_t = u(12)
+        c.create_window(M + pad_t, log_y + pad_t, window=self.log, anchor="nw",
+                        width=W - 2 * M - 2 * pad_t, height=log_h - 2 * pad_t)
+        px = M + u(20)
+        self.now.item = c.create_text(px + u(58) + u(16), player_y + u(18), text=self.now.text, fill=self.now.fg,
+                                      anchor="nw", font=FONT_HEAD(14))
+        self.detail.item = c.create_text(px + u(58) + u(16), player_y + u(46), text=self.detail.text, fill=self.detail.fg,
+                                         anchor="nw", font=FONT_BODY(9))
+        self.time.item = c.create_text(W - M - u(20), player_y + u(16), text=self.time.text, fill=self.time.fg,
+                                       anchor="ne", font=FONT_MONO(11))
+        self._draw_cover(self._cover_letter)
+        self._draw_progress()
+        self._draw_badge()
+
+    def _btn_hover(self, b: CBtn, on: bool):
+        b.hover = on and b.enabled
+        self.canvas.configure(cursor="hand2" if (on and b.enabled) else "")
+        b.paint()
+
+    def _put(self, sprite, x, y, tag, anchor="nw"):
+        """Compõe `sprite` sobre a cena e põe no canvas (tag para poder apagar depois)."""
+        photo = tk.PhotoImage(data=gfx.to_photo_data(gfx.over(self.scene, sprite, x, y)))
+        self._photos.append(photo)
+        return self.canvas.create_image(x, y, image=photo, anchor="nw", tags=tag)
 
     def _draw_cover(self, letter: str):
-        c = self.cover
-        c.delete("all")
-        self._round_rect(c, 2, 2, 56, 56, 12, fill=SUBTLE, outline=BORDER)
-        c.create_text(29, 29, text=(letter[:1].upper() or "B"), fill=ACCENT, font=FONT_HEAD(22))
+        self._cover_letter = letter
+        if not getattr(self, "scene", None):
+            return
+        c, u, g = self.canvas, self.u, self._geo
+        c.delete("cover")
+        size = u(58)
+        x, y = g["M"] + u(20), g["player_y"] + u(16)
+        tile = gfx.surface(size, size, u(15), ACCENT, None, gradient=(ACCENT, TEAL), diagonal=True, highlight=0.3)
+        if letter in ("—", ""):
+            tile.alpha_composite(gfx.icon("search", u(28), ACCENT_FG, 2.0), ((size - u(28)) // 2, (size - u(28)) // 2))
+            self._put(tile, x, y, "cover")
+        else:
+            self._put(tile, x, y, "cover")
+            c.create_text(x + size // 2, y + size // 2, text=letter[:1].upper(), fill=ACCENT_FG, font=FONT_HEAD(20),
+                          tags="cover")
 
     def _draw_progress(self):
-        c = self.progress
-        c.delete("all")
-        w = c.winfo_width()
-        c.create_rectangle(0, 0, w, 4, fill=SUBTLE, outline="")
+        if not getattr(self, "scene", None):
+            return
+        c = self.canvas
+        c.delete("prog")
+        x, y, w, h = self._track
         if self._frac > 0:
-            end = max(2, int(w * min(self._frac, 1.0)))
-            steps = 24                  # gradiente violeta→teal só no preenchimento (detalhe de marca)
-            for i, col in enumerate(gradient(ACCENT, TEAL, steps)):
-                x1, x2 = int(end * i / steps), int(end * (i + 1) / steps)
-                if x2 > x1:
-                    c.create_rectangle(x1, 0, x2, 4, fill=col, outline="")
+            fw = max(h, int(w * min(self._frac, 1.0)))
+            self._put(gfx.capsule(fw, h, gradient=(ACCENT, TEAL)), x, y, "prog")
+
+    def _draw_badge(self):
+        if not getattr(self, "scene", None):
+            return
+        c, u, g = self.canvas, self.u, self._geo
+        c.delete("badge")
+        text, color = self.badge.text, self.badge.fg
+        if not text:
+            return
+        w, h = self.measure(FONT_MONO(9), text) + u(24), u(24)
+        x, y = g["W"] - g["M"] - u(20) - w, g["player_y"] + u(46)
+        neutral = color == MUTED
+        sprite = gfx.surface(w, h, h // 2, SUBTLE if neutral else tint(color, 0.16, PANEL),
+                             None if neutral else tint(color, 0.38, PANEL), highlight=0)
+        self._put(sprite, x, y, "badge")
+        c.create_text(x + w // 2, y + h // 2, text=text, fill=color, font=FONT_MONO(9), tags="badge")
 
     # ------------------------------------------------------------------ dados
     def _load_stats(self):
