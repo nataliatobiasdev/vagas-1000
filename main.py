@@ -43,6 +43,7 @@ def main(argv=None):
     ap.add_argument("--no-open", action="store_true", help="não abre o painel ao final")
     args = ap.parse_args(argv)
     setup_logging()
+    paths.ensure_config()          # copia config/*.json do pacote para a pasta de dados (editável) na 1ª execução
 
     if args.painel or args.reavaliar:
         import json

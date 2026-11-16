@@ -159,3 +159,25 @@ class AppPollRegressionTests(unittest.TestCase):
         a._flush_results({"results": [{"name": "A", "ok": False, "count": 0, "seconds": 1}],
                           "errors": [{"name": "A", "error": "boom"}]})
         root.destroy()
+
+
+class PathsTests(unittest.TestCase):
+    def test_ensure_config_copies_defaults_once_and_keeps_user_edits(self):
+        import importlib
+        import os
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"VAGAS1000_HOME": tmp}):
+            from scraper import paths
+            paths = importlib.reload(paths)
+            try:
+                paths.ensure_config()
+                prof = Path(tmp) / "config" / "profile.json"
+                self.assertTrue(prof.exists())
+                prof.write_text('{"editado": true}', encoding="utf-8")
+                paths.ensure_config()                              # não sobrescreve a edição do usuário
+                self.assertEqual(prof.read_text(encoding="utf-8"), '{"editado": true}')
+            finally:
+                os.environ.pop("VAGAS1000_HOME", None)
+                importlib.reload(paths)

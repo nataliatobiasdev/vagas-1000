@@ -661,6 +661,7 @@ def main():
         cli.main(sys.argv[1:])
         return
     load_fonts()
+    paths.ensure_config()              # o perfil editável já existe antes da 1ª atualização
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)             # texto nítido e tamanhos reais em telas com escala
     except Exception:

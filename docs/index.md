@@ -35,6 +35,6 @@ features:
     details: Violeta e teal sobre neutros escuros, Space Grotesk, Inter e JetBrains Mono empacotadas, na janela e no painel.
     link: /guia/identidade-visual
   - title: Testado de verdade
-    details: 51 testes offline, coleta real das 53 empresas sem navegador e execução do .exe empacotado. O relatório lista o que não funciona.
+    details: 52 testes offline, coleta real das 53 empresas sem navegador e execução do .exe empacotado. O relatório lista o que não funciona.
     link: /qualidade/relatorio
 ---

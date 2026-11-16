@@ -3,10 +3,10 @@
 Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi descobrir o que **não funciona** e como resolver. Cada item diz se foi corrigido nesta rodada ou se segue aberto.
 
 <div class="stats">
-<div><b>51</b><span>testes offline passando (47 antes, 4 novos)</span></div>
+<div><b>52</b><span>testes offline passando (47 antes, 5 novos)</span></div>
 <div><b>53 / 53</b><span>empresas sem navegador coletadas ao vivo, 0 erros</span></div>
 <div><b>1.197</b><span>vagas na coleta ao vivo, 256 elegíveis</span></div>
-<div><b>5</b><span>problemas corrigidos</span></div>
+<div><b>6</b><span>problemas corrigidos</span></div>
 <div><b>5</b><span>pontos em aberto</span></div>
 </div>
 
@@ -14,7 +14,7 @@ Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi desco
 
 | Teste | Resultado |
 | --- | --- |
-| Suíte offline (`unittest`, fixtures de HTML e JSON) | <span class="ok">passou</span>, 47 → 51 testes |
+| Suíte offline (`unittest`, fixtures de HTML e JSON) | <span class="ok">passou</span>, 47 → 52 testes |
 | Coleta ao vivo das 53 empresas por API (sem Chrome) | <span class="ok">passou</span>: 1.197 vagas, 256 elegíveis, 0 erros |
 | Stone (Selenium, Chrome real) | <span class="ok">passou</span> depois da correção 3: 9 vagas |
 | Janela do app aberta e inspecionada | <span class="ok">passou</span> depois da correção 1 e do novo visual |
@@ -57,7 +57,14 @@ Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi desco
 | **Sintoma** | A instalação exigia Python, `.venv` e `pip` na máquina |
 | **Correção** | Empacotamento PyInstaller + instalador NSIS por usuário, gerado no CI e publicado a cada tag. Os dados passam a ficar em `%APPDATA%\vagas1000` (`scraper/paths.py`) em vez de dentro da pasta do código. Veja [Instalador Windows](/qualidade/instalador) |
 
-### 5. Resíduos de versões anteriores
+### 5. A configuração só aparecia depois da primeira captura
+
+| | |
+| --- | --- |
+| **Sintoma** | No app instalado, `%APPDATA%agas1000\config` não existia até a primeira atualização; quem queria editar o perfil antes não achava o arquivo. Foi o **CI** que pegou: o teste de fumaça do `.exe` exigia o arquivo e falhou |
+| **Correção** | `paths.ensure_config()` roda ao abrir o app e o `main`; teste `PathsTests` (copia uma vez e nunca sobrescreve suas edições) |
+
+### 6. Resíduos de versões anteriores
 
 | | |
 | --- | --- |

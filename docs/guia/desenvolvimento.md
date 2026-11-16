@@ -12,7 +12,7 @@ python -m venv .venv
 
 | Comando | O que faz |
 | --- | --- |
-| `python -m unittest discover -s tests` | 51 testes offline (sem rede, sem Chrome) |
+| `python -m unittest discover -s tests` | 52 testes offline (sem rede, sem Chrome) |
 | `python main.py --only ciandt --no-open` | Captura uma empresa pela linha de comando |
 | `python main.py --painel` | Regenera o painel a partir do banco |
 | `python scripts/make_icon.py` | Redesenha o ícone e os favicons |

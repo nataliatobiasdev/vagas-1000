@@ -1,12 +1,12 @@
 # Testes
 
-`python -m unittest discover -s tests` roda **51 testes em ~1 segundo**, sem rede e sem Chrome.
+`python -m unittest discover -s tests` roda **52 testes em ~1 segundo**, sem rede e sem Chrome.
 
 | Arquivo | Testes | O que cobre |
 | --- | --- | --- |
 | `tests/test_parsers.py` | 29 | Interpretação do HTML/JSON de cada fonte (Greenhouse, Lever, Ashby, Gupy, Stone), com fixtures reais em `tests/fixtures/` |
 | `tests/test_db.py` | 8 | Gravação de execuções, vagas novas, encerradas e reabertas; “todas falharam” não grava |
-| `tests/test_runner.py` | 8 | Sessão do Chrome que morre (retentativa), Chrome sob demanda, falta de Chrome, regressão da janela |
+| `tests/test_runner.py` | 9 | Sessão do Chrome que morre (retentativa), Chrome sob demanda, falta de Chrome, regressão da janela, criação da configuração |
 | `tests/test_collectors.py` | 4 | Filtros por empresa (título, local, deduplicação) |
 | `tests/test_config.py` | 2 | `companies.json` e `profile.json` válidos |
 

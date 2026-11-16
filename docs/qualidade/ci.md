@@ -14,7 +14,7 @@ Em `windows-latest`, timeout de 30 min:
 
 ```mermaid
 flowchart LR
-  A[checkout] --> B["Python 3.12<br/>+ requirements-dev"] --> C["unittest<br/>51 testes"] --> D[version_info] --> E["PyInstaller<br/>vagas1000.spec"] --> F["fumaça:<br/>vagas1000.exe --scrape --painel"] --> G["NSIS<br/>makensis"] --> H["artefato<br/>vagas1000-Setup-*.exe"]
+  A[checkout] --> B["Python 3.12<br/>+ requirements-dev"] --> C["unittest<br/>52 testes"] --> D[version_info] --> E["PyInstaller<br/>vagas1000.spec"] --> F["fumaça:<br/>vagas1000.exe --scrape --painel"] --> G["NSIS<br/>makensis"] --> H["artefato<br/>vagas1000-Setup-*.exe"]
 ```
 
 O **teste de fumaça** abre o executável empacotado com `VAGAS1000_HOME` numa pasta temporária e exige que `out/dashboard.html` e `config/companies.json` existam. Ele pega o que o teste unitário não pega: arquivo de dados esquecido na spec, importação que só falha congelada.
