@@ -1,0 +1,6 @@
+# Ferramentas de desenvolvimento e empacotamento (o app em si só precisa de requirements.txt)
+-r requirements.txt
+pyinstaller>=6.10      # gera dist/vagas1000/vagas1000.exe
+pillow>=10             # scripts/make_icon.py
+fonttools>=4.50        # scripts/build_fonts.py
+brotli>=1.1            # WOFF2 para o painel

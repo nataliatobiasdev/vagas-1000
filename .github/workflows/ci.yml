@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Testes offline (sem rede, sem Chrome)
+        run: python -m unittest discover -s tests -v
+      - name: Metadados do executável
+        run: python scripts/make_version_info.py
+      - name: Empacotar (PyInstaller)
+        run: pyinstaller vagas1000.spec --noconfirm
+      - name: Teste de fumaça do executável empacotado
+        shell: bash
+        env:
+          VAGAS1000_HOME: ${{ runner.temp }}/bb-home
+        run: |
+          dist/vagas1000/vagas1000.exe --scrape --painel --no-open
+          test -s "$VAGAS1000_HOME/out/dashboard.html"
+          test -s "$VAGAS1000_HOME/config/companies.json"
+      - name: Instalador Windows (NSIS, por usuário)
+        shell: bash
+        run: |
+          VERSION=$(python -c "from scraper.version import __version__ as v; print(v)")
+          choco install nsis -y --no-progress
+          "/c/Program Files (x86)/NSIS/makensis.exe" "//DVERSION=$VERSION" installer/vagas1000.nsi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: dist/vagas1000-Setup-*.exe
+          if-no-files-found: error

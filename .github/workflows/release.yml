@@ -1,0 +1,46 @@
+name: Release
+
+# Para lançar: atualize scraper/version.py e o CHANGELOG.md, faça merge na main e crie a tag:
+#   git tag v1.0.0 && git push origin v1.0.0
+# O workflow confere se a tag bate com scraper/version.py, gera o instalador e publica a Release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: A tag precisa bater com scraper/version.py
+        shell: bash
+        run: |
+          VERSION=$(python -c "from scraper.version import __version__ as v; print(v)")
+          test "v$VERSION" = "${GITHUB_REF_NAME}" || { echo "Tag ${GITHUB_REF_NAME} != v$VERSION (scraper/version.py)"; exit 1; }
+      - run: python -m unittest discover -s tests
+      - run: python scripts/make_version_info.py
+      - run: pyinstaller vagas1000.spec --noconfirm
+      - name: Instalador (NSIS)
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          choco install nsis -y --no-progress
+          "/c/Program Files (x86)/NSIS/makensis.exe" "//DVERSION=$VERSION" installer/vagas1000.nsi
+      - name: Notas da versão a partir do CHANGELOG
+        shell: bash
+        run: python scripts/release_notes.py "${GITHUB_REF_NAME#v}" > release-notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: vagas1000 ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: dist/vagas1000-Setup-*.exe
