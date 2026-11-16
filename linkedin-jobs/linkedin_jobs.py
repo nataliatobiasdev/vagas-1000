@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """Busca vagas no LinkedIn Jobs usando a SUA sessão já logada do Chrome (via CDP), sem login novo.
 
-Comportamento: somente leitura (não clica em "Candidatura simplificada", não envia mensagem),
-cadência humana de 7 a 22 s entre ações, rolagem gradual, e para na primeira verificação/CAPTCHA
-em vez de tentar contornar.
+Modo seguro (padrão): 2 páginas por busca, até 50 vagas, só as últimas 24h (sortBy=DD), sem abrir
+detalhe (0 requests por vaga), pausas de 25–55 s entre páginas e 60–120 s entre buscas, no máximo
+1 execução por dia (--force para repetir) e parada imediata em CAPTCHA/checkpoint. Somente leitura:
+nunca clica em candidatura, mensagem ou perfil.
 
 Uso:
     python launch_chrome.py            # 1) abre o Chrome de depuração com a sua sessão
-    python linkedin_jobs.py            # 2) busca, abre as vagas, pontua e gera o relatório
+    python linkedin_jobs.py            # 2) busca (modo seguro) e gera o relatório
     python linkedin_jobs.py --probe "https://www.linkedin.com/jobs/search/?keywords=Salesforce"
     python linkedin_jobs.py --self-test
 
-Saídas em out/: linkedin-report.md, linkedin-jobs.json, run.log
+Saídas em out/: linkedin-report.md, linkedin-jobs.json, status.json, last-run.json, run.log
 """
 from __future__ import annotations
 
@@ -36,6 +37,52 @@ CDP_URL = os.environ.get("LINKEDIN_CDP", "http://localhost:9222")
 MIN_DELAY, MAX_DELAY = 7.0, 22.0
 
 log = logging.getLogger("linkedin")
+
+# modo seguro (padrão): 2 páginas, até 50 vagas, sem abrir detalhe, só últimas 24h
+SAFE_PAGES = 2
+SAFE_MAX_JOBS = 50
+SAFE_TPR = "r86400"
+PAGE_PAUSE = (25.0, 55.0)     # entre páginas
+SEARCH_PAUSE = (60.0, 120.0)  # entre buscas
+STATUS = OUT / "status.json"
+LAST_RUN = OUT / "last-run.json"
+
+
+class Blocked(Exception):
+    """Desafio de segurança/CAPTCHA: parar na hora, sem tentar contornar."""
+
+
+def write_status(**data) -> None:
+    """Grava out/status.json para o app mostrar o progresso no player."""
+    try:
+        OUT.mkdir(parents=True, exist_ok=True)
+        payload = {"updated_at": datetime.now().isoformat(timespec="seconds"), **data}
+        tmp = OUT / ".status.tmp"
+        tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(STATUS)
+    except Exception:
+        pass
+
+
+def last_run() -> dict | None:
+    try:
+        d = json.loads(LAST_RUN.read_text(encoding="utf-8"))
+        return d if d.get("date") == datetime.now().strftime("%Y-%m-%d") else None
+    except Exception:
+        return None
+
+
+def safe_pause(page=None, label: str = "", window: tuple[float, float] = PAGE_PAUSE) -> None:
+    secs = random.uniform(*window)
+    log.info("pausa de segurança: %.0fs (%s)", secs, label or "respiro")
+    time.sleep(secs)
+    if page:
+        try:
+            w = page.evaluate("() => Math.max(window.innerWidth, 800)")
+            h = page.evaluate("() => Math.max(window.innerHeight, 600)")
+            page.mouse.move(random.randint(40, int(w) - 40), random.randint(80, int(h) - 80))
+        except Exception:
+            pass
 
 
 # ------------------------------------------------------------------ perfil alvo
@@ -169,6 +216,15 @@ def blocked_reason(page) -> str | None:
             return "sessão não autenticada (tela de login)"
     except Exception:
         pass
+    try:
+        body = norm(page.locator("body").inner_text(timeout=1500)[:5000])
+    except Exception:
+        body = ""
+    for term in ("captcha", "unusual activity", "atividade incomum", "security verification",
+                 "verifique se voce", "verifique se você", "checkpoint", "acesso restrito",
+                 "we've restricted", "restricted your account"):
+        if term in body:
+            return f"desafio de segurança na página ({term})"
     return None
 
 
@@ -208,7 +264,9 @@ def search_url(s: dict, start: int = 0) -> str:
 def open_search(page, s: dict, start: int = 0) -> int:
     url = search_url(s, start)
     log.info("[%s] abrindo %s", s["id"], url)
-    page.goto(url, wait_until="domcontentloaded")
+    resp = page.goto(url, wait_until="domcontentloaded")
+    if resp is not None and resp.status in (999, 429, 403):
+        raise Blocked(f"HTTP {resp.status} do LinkedIn")
     accept_cookies(page)
     try:
         page.wait_for_selector(CARD_SEL, timeout=15000)
@@ -269,8 +327,39 @@ def scrape_cards(page) -> list[dict]:
                        ".job-card-container__company-name", ".artdeco-entity-lockup__subtitle span")
         location = pick(".job-search-card__location", ".job-card-container__metadata-item",
                         ".artdeco-entity-lockup__caption li", ".artdeco-entity-lockup__caption")
-        footer = pick("time.job-search-card__listdate", ".job-card-container__footer-item",
+        footer = pick("time.job-search-card__listdate", "time.job-card-container__footer-item",
+                      ".job-card-container__footer-item", ".job-search-card__listdate",
                       ".job-card-container__footer-wrapper")
+        if not re.search(r"há|ago|reposted|dia|hora|minuto|semana|mês|mes|day|hour|week|month",
+                         footer, re.I):
+            footer = ""
+        if not footer:
+            try:
+                items = c.locator(".job-card-container__footer-item, .job-card-container__footer-wrapper li")
+                for k in range(min(items.count(), 5)):
+                    t = clean(items.nth(k).inner_text())
+                    if re.search(r"há|ago|reposted|dia|hora|minuto|semana|mês|mes|day|hour", t, re.I):
+                        footer = t
+                        break
+            except Exception:
+                pass
+        if not footer:
+            try:
+                tm = c.locator("time").first
+                if tm.count():
+                    footer = clean(tm.inner_text()) or (tm.get_attribute("datetime") or "")
+            except Exception:
+                pass
+        if not footer:
+            try:                                  # último recurso: o texto do card traz "há 2 horas"
+                full = clean(c.inner_text())
+                m = re.search(r"(há\s+\d+\s+(?:minuto|hora|dia|semana|mês|mes)s?"
+                              r"|reposted[^|]{0,40}"
+                              r"|\d+\s+(?:minute|hour|day|week|month)s?\s+ago)", full, re.I)
+                if m:
+                    footer = m.group(1).strip()
+            except Exception:
+                pass
         out.append({
             "job_id": jid,
             "title": title or "(sem título)",
@@ -527,22 +616,25 @@ def critical_requirements(job: dict) -> list[str]:
 
 
 # ------------------------------------------------------------------ relatório
-def render_report(jobs: list[dict], path: Path) -> Path:
+def render_report(jobs: list[dict], path: Path, order_note: str = "match") -> Path:
+    ordem = ("mais recentes primeiro (ordem do LinkedIn com sortBy=DD; o match é a coluna ao lado)"
+             if order_note == "recent" else "maior % de match primeiro")
     lines = [
-        "# Vagas LinkedIn — relatório por % de match",
+        "# Vagas LinkedIn — relatório",
         "",
         f"Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')} · "
-        f"{len(jobs)} vagas analisadas · perfil: Salesforce/AWS/Go/Python · sênior · BR remoto ou internacional remoto",
+        f"{len(jobs)} vagas · ordenado por {ordem}",
         "",
         "> Match calculado por regras (título 25, stack 35, localização 20, inglês 10, certificações 10). "
         "Não é uma promessa de contratação — é um ranking para priorizar.",
         "",
-        "| # | Match | Vaga | Empresa | Local/modelo |",
-        "|---|---|---|---|---|",
+        "| # | Match | Publicada | Vaga | Empresa | Local/modelo |",
+        "|---|---|---|---|---|---|",
     ]
     for i, j in enumerate(jobs, 1):
-        lines.append(f"| {i} | **{j['score']['match_pct']}%** | {j['title'][:70]} | {j['company'][:40]} | "
-                     f"{(j.get('location') or j.get('location_detail') or '')[:55]} |")
+        posted = (j.get("posted") or "—").replace("|", "/")[:18]
+        lines.append(f"| {i} | **{j['score']['match_pct']}%** | {posted} | {j['title'][:70]} | "
+                     f"{j['company'][:40]} | {(j.get('location') or j.get('location_detail') or '')[:55]} |")
     lines.append("")
 
     for i, j in enumerate(jobs, 1):
@@ -589,71 +681,139 @@ def run(args) -> int:
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S",
         handlers=[logging.StreamHandler(sys.stdout),
                   logging.FileHandler(OUT / "run.log", encoding="utf-8")])
-    log.info("cadência: %.0f–%.0f s entre ações; modo somente leitura", MIN_DELAY, MAX_DELAY)
+    started = datetime.now().isoformat(timespec="seconds")
+    pages = min(int(args.pages), SAFE_PAGES)
+    max_jobs = min(int(args.max_jobs), SAFE_MAX_JOBS)
+    details = min(int(args.details or 0), 5)
+    log.info("modo seguro: %d página(s)/busca, até %d vagas, %d detalhe(s), TPR=%s",
+             pages, max_jobs, details, args.tpr)
+
+    if not args.force:
+        prev = last_run()
+        if prev:
+            msg = f"já rodou hoje ({prev.get('found', 0)} vagas). Use --force para repetir."
+            log.warning(msg)
+            write_status(state="done", started_at=started, finished_at=started,
+                         found=prev.get("found", 0), report=prev.get("report"),
+                         message=msg, skipped=True)
+            return 4
 
     searches = SEARCHES if args.intl else [s for s in SEARCHES if s["id"] != "intl"]
     if args.keywords:
         searches = [{"id": "custom", "label": "busca personalizada", "keywords": args.keywords,
                      "location": args.location, "tpr": args.tpr, "wt": args.wt}]
+    for s in searches:
+        s["tpr"] = args.tpr                     # sempre as mais recentes
+    total_pages = pages * len(searches)
+    done_pages = 0
 
     from playwright.sync_api import sync_playwright
     collected: dict[str, dict] = {}
-    with sync_playwright() as pw:
-        browser, ctx, page = connect(pw)
-        try:
-            for s in searches:
-                for page_idx in range(args.pages):
-                    if len(collected) >= args.max_details:
+    page = None
+    write_status(state="running", started_at=started, pages=pages, found=0, page=0,
+                 search=searches[0]["label"], details=details, total_pages=total_pages, done_pages=0)
+    try:
+        with sync_playwright() as pw:
+            browser, ctx, page = connect(pw)
+            try:
+                for s_idx, s in enumerate(searches):
+                    if len(collected) >= max_jobs:
                         break
-                    open_search(page, s, start=page_idx * 25)
-                    reason = blocked_reason(page)
-                    if reason:
-                        save_debug(page, f"bloqueio-{s['id']}")
-                        raise SystemExit(f"PARANDO: {reason}. Não vou tentar contornar — "
-                                         "faça a verificação manualmente no Chrome e rode de novo.")
-                    cards = scrape_cards(page)
-                    log.info("[%s] página %d: %d cards", s["id"], page_idx + 1, len(cards))
-                    if not cards:
-                        break
-                    for card in cards:
-                        if len(collected) >= args.max_details:
+                    if s_idx:
+                        safe_pause(page, f"antes da busca '{s['label'][:30]}'", SEARCH_PAUSE)
+                    for page_idx in range(pages):
+                        if len(collected) >= max_jobs:
                             break
-                        if card["job_id"] in collected:
-                            continue
-                        human_delay(page, f"antes de abrir: {card['title'][:45]}")
-                        if not open_detail(page, card):
-                            continue
-                        job = parse_detail(page, card)
-                        if len(job.get("description", "")) < 80:
-                            log.warning("descrição curta (%d chars) em %s", len(job.get("description", "")), card["job_id"])
-                        job["score"] = score_job(job)
-                        collected[card["job_id"]] = job
-                        with open(DEBUG / f"job-{card['job_id']}.json", "w", encoding="utf-8") as fh:
-                            json.dump(job, fh, ensure_ascii=False, indent=2)
-                        log.info("  %3d%% %s | %s", job["score"]["match_pct"],
-                                 job["title"][:55], job["company"][:35])
-                        gradual_scroll(page, steps=random.randint(1, 3))
-                        human_delay(page, "depois do detalhe")
-                        if "/jobs/view/" in page.url:      # layout de página inteira: volta para a lista
+                        write_status(state="running", started_at=started, pages=pages,
+                                     found=len(collected), page=page_idx + 1,
+                                     search=s["label"], details=details,
+                                     total_pages=total_pages, done_pages=done_pages)
+                        open_search(page, s, start=page_idx * 25)
+                        reason = blocked_reason(page)
+                        if reason:
+                            save_debug(page, f"bloqueio-{s['id']}-{page_idx + 1}")
+                            raise Blocked(reason)
+                        cards = scrape_cards(page)
+                        log.info("[%s] página %d: %d cards", s["id"], page_idx + 1, len(cards))
+                        if not cards:
+                            break
+                        for card in cards:
+                            if len(collected) >= max_jobs:
+                                break
+                            if card["job_id"] in collected:
+                                continue
+                            job = dict(card)
+                            job["description"] = ""
+                            job["order"] = len(collected)      # ordem do LinkedIn ≈ mais recente primeiro
+                            job["score"] = score_job(job)
+                            collected[card["job_id"]] = job
+                        if len(collected) < max_jobs and page_idx + 1 < pages:
+                            safe_pause(page, f"antes da página {page_idx + 2} de '{s['id']}'")
+                        done_pages += 1
+                if details:
+                    log.info("abrindo no máximo %d detalhes (pausa longa entre eles)", details)
+                    for job in list(collected.values())[:details]:
+                        write_status(state="running", started_at=started, pages=pages,
+                                     found=len(collected), page=pages, search="detalhes",
+                                     details=details, message=f"detalhe: {job['title'][:40]}")
+                        safe_pause(page, "antes do detalhe")
+                        if open_detail(page, job):
+                            parsed = parse_detail(page, job)
+                            job.update({k: v for k, v in parsed.items() if v})
+                            job["score"] = score_job(job)
+                        if "/jobs/view/" in page.url:
                             try:
                                 page.go_back(wait_until="domcontentloaded")
-                                page.wait_for_selector(CARD_SEL, timeout=15000)
-                            except Exception as e:
-                                log.warning("não consegui voltar para a lista (%s); reabrindo a busca", type(e).__name__)
-                    human_delay(page, "troca de página")
-        finally:
-            try:
-                pw.stop()                      # desconecta; NÃO fecha o seu Chrome
-            except Exception:
-                pass
+                            except Exception:
+                                pass
+            finally:
+                try:
+                    pw.stop()                   # desconecta; NÃO fecha o seu Chrome
+                except Exception:
+                    pass
+    except Blocked as e:
+        write_status(state="blocked", started_at=started,
+                     finished_at=datetime.now().isoformat(timespec="seconds"),
+                     found=len(collected), message=str(e))
+        log.error("PARANDO: %s. Não vou tentar contornar — verifique manualmente no Chrome.", e)
+        return 3
+    except SystemExit as e:
+        write_status(state="error", started_at=started,
+                     finished_at=datetime.now().isoformat(timespec="seconds"),
+                     found=len(collected), message=str(e))
+        log.error("erro: %s", e)
+        return 5
+    except Exception as e:
+        write_status(state="error", started_at=started,
+                     finished_at=datetime.now().isoformat(timespec="seconds"),
+                     found=len(collected), message=f"{type(e).__name__}: {e}")
+        log.exception("falha inesperada")
+        return 5
 
-    jobs = sorted(collected.values(), key=lambda j: (-j["score"]["match_pct"], j["title"]))[: args.top]
+    if args.sort == "match":
+        jobs = sorted(collected.values(), key=lambda j: (-j["score"]["match_pct"], j["title"]))
+    else:                                   # recente: ordem em que o LinkedIn devolveu (sortBy=DD)
+        jobs = sorted(collected.values(),
+                      key=lambda j: (j.get("order", 10 ** 9), -j["score"]["match_pct"]))
     if not jobs:
         log.error("nenhuma vaga coletada — veja out/debug/ (HTML e screenshot) para diagnosticar")
+        write_status(state="error", started_at=started,
+                     finished_at=datetime.now().isoformat(timespec="seconds"),
+                     found=0, message="nenhuma vaga coletada")
         return 2
 
-    report = render_report(jobs, OUT / "linkedin-report.md")
+    report = render_report(jobs[: args.top], OUT / "linkedin-report.md", order_note=args.sort)
     data = save_json(jobs, OUT / "linkedin-jobs.json")
+    LAST_RUN.write_text(json.dumps({"date": datetime.now().strftime("%Y-%m-%d"),
+                                    "found": len(jobs), "report": str(report),
+                                    "finished_at": datetime.now().isoformat(timespec="seconds")},
+                                   ensure_ascii=False, indent=2), encoding="utf-8")
+    write_status(state="done", started_at=started,
+                 finished_at=datetime.now().isoformat(timespec="seconds"),
+                 found=len(jobs), report=str(report), skipped=False,
+                 top=[{"title": j["title"][:80], "company": j["company"][:60],
+                       "location": j["location"][:60], "match_pct": j["score"]["match_pct"],
+                       "url": j["url"]} for j in jobs[:10]])
     log.info("relatório: %s", report)
     log.info("dados:     %s", data)
     print(f"\n{len(jobs)} vagas no relatório. Abra: {report}")
@@ -747,13 +907,18 @@ def main() -> int:
     ap.add_argument("--probe", metavar="URL", help="só abre uma URL e mostra o que encontrou (diagnóstico)")
     ap.add_argument("--self-test", action="store_true", help="testa pontuação/relatório sem browser")
     ap.add_argument("--out", default=str(OUT), help="pasta de saída")
-    ap.add_argument("--pages", type=int, default=3, help="páginas por busca (25 vagas/página)")
-    ap.add_argument("--max-details", type=int, default=24, help="quantas vagas abrir no total")
-    ap.add_argument("--top", type=int, default=10, help="quantas vagas entram no relatório")
+    ap.add_argument("--pages", type=int, default=SAFE_PAGES, help="páginas por busca (máx. 2)")
+    ap.add_argument("--max-jobs", type=int, default=SAFE_MAX_JOBS, help="teto de vagas por execução (máx. 50)")
+    ap.add_argument("--details", type=int, default=0, help="quantas vagas abrir no detalhe (0 = nenhuma)")
+    ap.add_argument("--force", action="store_true", help="ignora o limite de 1 execução por dia")
+    ap.add_argument("--top", type=int, default=30, help="quantas vagas entram no relatório")
+    ap.add_argument("--sort", default="recent", choices=["recent", "match"],
+                    help="ordem do relatório: recent (padrão) ou match")
     ap.add_argument("--no-intl", dest="intl", action="store_false", help="não fazer o passe internacional")
     ap.add_argument("--keywords", help="sobrescreve a busca (uma só)")
     ap.add_argument("--location", default="Brazil")
-    ap.add_argument("--tpr", default="r604800", choices=["r86400", "r604800"], help="24h ou última semana")
+    ap.add_argument("--tpr", default=SAFE_TPR, choices=["r86400", "r604800"],
+                    help="janela: 24h (padrão, mais recentes) ou última semana")
     ap.add_argument("--wt", default="2,3", help="1 presencial, 2 remoto, 3 híbrido (separar por vírgula)")
     args = ap.parse_args()
 

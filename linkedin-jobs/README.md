@@ -1,69 +1,77 @@
-# linkedin-jobs — busca de vagas na SUA sessão do Chrome
+# linkedin-jobs — busca de vagas na SUA sessão do Chrome (modo seguro)
 
-Ferramenta local que usa o Chrome já logado no LinkedIn (via CDP, porta 9222) para procurar vagas,
-abrir as descrições, pontuar por aderência ao seu perfil e gerar um relatório em Markdown.
+Usa o Chrome já logado no LinkedIn (via CDP, porta 9222) para listar as vagas **mais recentes**,
+pontuar por aderência ao seu perfil e gerar um relatório. **Não abre a página de cada vaga, não se
+candidata, não envia mensagem e não mexe na conta.**
 
-- **Somente leitura:** não clica em "Candidatura simplificada", não envia mensagem, não altera nada na conta.
-- **Cadência humana:** 7 a 22 s aleatórios entre abrir busca, trocar página e abrir cada vaga; rolagem gradual.
-- **Sem contornar bloqueio:** se aparecer login/CAPTCHA/checkpoint, o script para e salva um print em `out/debug/`.
-- **Match por regras** (não é IA): título 25, stack 35 (Salesforce pesa mais; AWS/Go/Python/Node/Angular somam),
-  localização 20, inglês 10, certificações 10. O relatório mostra a conta aberta ("justificativa técnica").
+## Modo seguro (padrão)
+
+| Regra | Valor |
+|---|---|
+| Páginas por busca | **2** (25 vagas/página) |
+| Teto por execução | **50 vagas** |
+| Janela | **últimas 24h** (`f_TPR=r86400`, `sortBy=DD`) |
+| Detalhes abertos | **0** (opcional: `--details N`, máx. 5) |
+| Pausa entre páginas | **25–55 s** aleatórios |
+| Pausa entre buscas | **60–120 s** aleatórios |
+| Frequência | **1 execução por dia** (`--force` para repetir) |
+| Bloqueio | para na hora em CAPTCHA/checkpoint/HTTP 999 e salva print em `out/debug/` |
+
+O relatório é ordenado por **mais recente primeiro** (ordem do LinkedIn); com `--sort match` ele
+volta a ordenar por % de match. O campo "Publicada" mostra o texto do card ("há 2 horas", "há 1 dia").
 
 ## Uso (Windows)
 
-1. **Instalar uma vez:** dois cliques em `setup.bat` (cria `.venv`, instala Playwright, roda o teste offline).
-2. **Abrir o Chrome de depuração com a sua sessão:**
+1. **Instalar uma vez:** dois cliques em `setup.bat`.
+2. **Abrir o Chrome de depuração** (cópia do perfil, já logada):
    ```
    .venv\Scripts\python.exe launch_chrome.py
    ```
-   Ele copia só o essencial do perfil (Local State + Preferences + cookies) para
-   `%TEMP%\linkedin-debug-profile` e abre o Chrome na página de vagas do LinkedIn.
-   Se pedir login, entre **uma vez** nessa janela (fica salvo nessa pasta). Seus cookies não saem da máquina.
-
-   Alternativas: `--no-copy` abre um perfil vazio (você entra uma vez, sem copiar cookies);
-   `--no-sandbox` só se o Chrome fechar sozinho no seu ambiente; `--refresh` recopia os cookies
-   se a sessão tiver expirado.
-3. **Rodar a busca:**
+   Se pedir login, entre **uma vez** nessa janela. Os cookies ficam só na máquina.
+   Ao terminar: `launch_chrome.py --clean`.
+3. **Rodar:**
    ```
    .venv\Scripts\python.exe linkedin_jobs.py
    ```
-   ou dois cliques em `run.bat`.
+   Ou, no app principal, o botão **Buscar no LinkedIn** (ele abre o Chrome de depuração se necessário,
+   respeita o limite diário e mostra o progresso na barra de status).
 
-Ao terminar: `python launch_chrome.py --clean` (apaga a cópia do perfil, que contém cookies).
-
-## Saídas (pasta `out/`)
+## Saídas (`out/`)
 
 | Arquivo | O que é |
 |---|---|
-| `linkedin-report.md` | as 10 melhores vagas em ordem decrescente de % de match, com pontos fortes, gaps, requisitos e salário |
-| `linkedin-jobs.json` | todos os campos extraídos (descrição completa inclusive) |
-| `run.log` | log da execução (tempos de espera, páginas, falhas) |
-| `debug/` | HTML e screenshot quando algo falha (seletor mudou, bloqueio, página vazia) |
+| `linkedin-report.md` | vagas ordenadas (recentes por padrão), com match, pontos fortes/gaps e link |
+| `linkedin-jobs.json` | todos os campos (inclusive `posted`) |
+| `status.json` | progresso ao vivo (lido pelo app: página, busca, vagas, bloqueio) |
+| `last-run.json` | data da última execução (controle de 1x/dia) |
+| `run.log` | log com as pausas e falhas |
+| `debug/` | HTML/screenshot quando algo falha |
 
-## Ajustes úteis
+## Ajustes
 
 ```
-python linkedin_jobs.py --tpr r86400          # só últimas 24h (padrão: última semana)
-python linkedin_jobs.py --no-intl             # só Brasil (sem o passe internacional)
-python linkedin_jobs.py --pages 5 --max-details 40   # varredura maior (demora mais)
-python linkedin_jobs.py --keywords '"Salesforce" AND "Remote"' --location "Brazil"
+python linkedin_jobs.py                       # modo seguro padrão
+python linkedin_jobs.py --sort match          # ordenar por match em vez de recente
+python linkedin_jobs.py --details 2           # abrir 2 detalhes (mais lento/arriscado)
+python linkedin_jobs.py --pages 1             # só a primeira página
+python linkedin_jobs.py --no-intl             # sem o passe internacional
+python linkedin_jobs.py --force               # ignorar o limite de 1x/dia
 python linkedin_jobs.py --probe "https://www.linkedin.com/jobs/search/?keywords=Salesforce"
 ```
 
-As buscas padrão são as 3 combinadas (Salesforce sênior, Eng/Backend Go/AWS/Python sênior,
-Solutions Architect/Tech Lead Salesforce/AWS) + 1 passe remoto internacional (EUR).
+Buscas padrão: Salesforce sênior (BR), Eng/Backend Go/AWS/Python sênior (BR), Solutions
+Architect/Tech Lead (BR) e um passe remoto internacional.
 
 ## Diagnóstico
 
-- **"Não consegui falar com o Chrome"** → rode `launch_chrome.py` (ou veja `--status`).
-- **"sessão não autenticada"** → entre no LinkedIn na janela de depuração e rode de novo.
-- **0 cards** → veja `out/debug/vazio-*.png`; o LinkedIn pode ter mudado o HTML ou a busca ficou sem resultado.
-- **Seletores mudaram** → o script tenta vários por campo; se ainda faltar algo, o HTML salvo em `debug/`
-  mostra o que usar em `CARD_SEL` / `parse_detail`.
+- **"Não consegui falar com o Chrome"** → `launch_chrome.py` (ou `--status`).
+- **"sessão não autenticada"** → entre na janela de depuração e rode de novo.
+- **0 cards** → veja `out/debug/vazio-*.png` (HTML mudou ou busca sem resultado).
+- **CAPTCHA** → o script para; faça a verificação manualmente e só rode no dia seguinte.
 
-## Limites
+## Limites (leia)
 
-- O LinkedIn não permite automação nos termos de uso; use com moderação, em ritmo humano, e pare se
-  aparecer verificação. O script não tenta burlar CAPTCHA, login ou bloqueio.
-- O layout do LinkedIn muda com frequência; os seletores são os de novembro/2026 e têm fallbacks.
-- A cópia de perfil só é necessária porque o Chrome 136+ bloqueia depuração remota no perfil padrão.
+- O LinkedIn **não permite automação** nos termos de uso. Mesmo em modo seguro, existe risco de
+  restrição da conta; o modo seguro reduz, não elimina.
+- O layout muda com frequência; os seletores são de novembro/2026 e têm fallbacks.
+- A cópia de perfil só existe porque o Chrome 136+ bloqueia depuração remota no perfil padrão.

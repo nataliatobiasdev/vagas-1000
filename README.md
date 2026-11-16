@@ -148,6 +148,22 @@ Requer Google Chrome; o Selenium Manager baixa o chromedriver compatível sozinh
 Saída em `out/`: `vagas-latest.json`, `vagas-latest.csv`, `dashboard.html`, `presenciais.md` e cópias com
 data/hora (o projeto mantém as **60 execuções mais recentes** para não crescer sem limite).
 
+## LinkedIn (modo seguro, opcional)
+
+O app tem o botão **Buscar no LinkedIn**. Ele usa o seu Chrome já logado (CDP, cópia do perfil em
+`%TEMP%\linkedin-debug-profile`), pega as **2 primeiras páginas** das buscas (últimas 24h, ordenadas por
+data), **não abre a página de cada vaga**, faz pausas de 25–55 s entre páginas e 60–120 s entre buscas,
+**1 execução por dia** (`--force` para repetir) e **para na hora em CAPTCHA/checkpoint**.
+
+Relatório: `linkedin-jobs/out/linkedin-report.md` — por padrão **mais recente primeiro**
+(`--sort match` para ordenar por aderência). Manual:
+`linkedin-jobs\.venv\Scripts\python.exe linkedin-jobs\linkedin_jobs.py` (antes, `launch_chrome.py`).
+
+> O LinkedIn não permite automação nos termos de uso. O modo seguro reduz o risco, não elimina; nunca
+> clica em candidatura, mensagem ou perfil.
+
+## Banco de dados e painel
+
 ## GitHub
 O repositório já está inicializado (branch `main`). O `.gitignore` deixa de fora `.venv/`, `data/`,
 `out/` e `logs/` — código, config e testes vão para o GitHub; seus dados ficam locais.

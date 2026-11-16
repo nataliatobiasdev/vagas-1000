@@ -12,19 +12,28 @@ import subprocess
 import sys
 import time
 import tkinter as tk
+import urllib.request
 from datetime import datetime
 from pathlib import Path
+from tkinter import messagebox
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "out"
 STATUS = OUT / "status.json"
 DB = ROOT / "data" / "vagas.db"
+LI_DIR = ROOT / "linkedin-jobs"
+LI_PY = LI_DIR / ".venv" / "Scripts" / "python.exe"
+LI_STATUS = LI_DIR / "out" / "status.json"
+LI_REPORT = LI_DIR / "out" / "linkedin-report.md"
+LI_LAST = LI_DIR / "out" / "last-run.json"
+LI_CDP = "http://127.0.0.1:9222/json/version"
 
 BG = "#121212"
 SURFACE = "#181818"
 SURFACE2 = "#282828"
 GREEN = "#1DB954"
 GREEN_HI = "#1ED760"
+BLUE = "#0A66C2"
 TEXT = "#FFFFFF"
 MUTED = "#B3B3B3"
 ERR = "#F15E6C"
@@ -60,9 +69,13 @@ class VagasApp:
         self._last_results = 0
         self._last_errors = 0
         self.was_external = False
+        self.li_proc = None
+        self.li_log = None
+        self.li_finished = False
+        self.mode = None             # "update" | "linkedin"
         root.title("Vagas Scraper")
-        root.geometry("940x640")
-        root.minsize(860, 600)
+        root.geometry("1040x640")
+        root.minsize(960, 600)
         root.configure(bg=BG)
         self._build()
         self._load_stats()
@@ -100,7 +113,13 @@ class VagasApp:
                                  font=("Segoe UI Semibold", 13), bd=0, padx=20, pady=10,
                                  cursor="hand2", disabledforeground="#0a3d1c")
         self.btn_run.pack(side="left")
+        self.btn_li = tk.Button(actions, text="Buscar no LinkedIn", command=self.start_linkedin,
+                                bg=BLUE, fg=TEXT, activebackground="#0A7BD6", activeforeground=TEXT,
+                                font=("Segoe UI Semibold", 12), bd=0, padx=16, pady=10,
+                                cursor="hand2", disabledforeground="#7aa9c9")
+        self.btn_li.pack(side="left", padx=(10, 0))
         for label, cmd in (("Abrir painel", self.open_dashboard),
+                           ("Relatório LinkedIn", self.open_linkedin_report),
                            ("Abrir presenciais", self.open_presenciais),
                            ("Abrir pasta", self.open_folder)):
             tk.Button(actions, text=label, command=cmd, bg=SURFACE2, fg=TEXT, bd=0, padx=14, pady=10,
@@ -187,7 +206,9 @@ class VagasApp:
     def start_run(self):
         if self.proc and self.proc.poll() is None:
             return
+        self.mode = "update"
         self.btn_run.config(state="disabled", text="Atualizando…")
+        self.btn_li.config(state="disabled")
         self.finished = False
         self._last_results = 0
         self._last_errors = 0
@@ -202,6 +223,170 @@ class VagasApp:
         self.proc = subprocess.Popen([sys.executable, str(ROOT / "main.py"), "--no-open"],
                                      cwd=str(ROOT), stdout=self.log_file,
                                      stderr=subprocess.STDOUT, creationflags=flags)
+
+    # ------------------------------------------------------------- LinkedIn
+    def start_linkedin(self):
+        if (self.proc and self.proc.poll() is None) or (self.li_proc and self.li_proc.poll() is None):
+            return
+        if not LI_PY.exists():
+            messagebox.showerror("LinkedIn", "Ambiente do linkedin-jobs não encontrado.\n"
+                                             "Rode linkedin-jobs\\setup.bat primeiro.")
+            return
+        force = False
+        try:
+            prev = json.loads(LI_LAST.read_text(encoding="utf-8"))
+            if prev.get("date") == datetime.now().strftime("%Y-%m-%d"):
+                if not messagebox.askyesno(
+                        "LinkedIn",
+                        f"Já rodou hoje ({prev.get('found', 0)} vagas).\n"
+                        "Rodar de novo aumenta o risco de bloqueio. Continuar?"):
+                    return
+                force = True
+        except Exception:
+            pass
+        if not self._cdp_up():
+            if not messagebox.askyesno(
+                    "LinkedIn",
+                    "O Chrome de depuração (porta 9222) não está aberto.\n"
+                    "Abrir agora? (usa uma cópia do seu perfil, já logado — é o mesmo Chrome de antes)"):
+                return
+            self._launch_debug_chrome()
+            if not self._cdp_up():
+                messagebox.showerror("LinkedIn", "Não consegui abrir o Chrome de depuração.\n"
+                                                 "Rode linkedin-jobs\\launch_chrome.py manualmente.")
+                return
+        self.mode = "linkedin"
+        self.li_finished = False
+        self.btn_run.config(state="disabled")
+        self.btn_li.config(state="disabled", text="LinkedIn rodando…")
+        self._append_log("LinkedIn: modo seguro — 2 páginas, últimas 24h, sem abrir detalhe.")
+        logs = ROOT / "logs"
+        logs.mkdir(exist_ok=True)
+        self.li_log = open(logs / "linkedin-app.log", "a", encoding="utf-8")
+        args = [str(LI_PY), "linkedin_jobs.py", "--pages", "2", "--max-jobs", "50",
+                "--details", "0", "--tpr", "r86400", "--top", "30"]
+        if force:
+            args.append("--force")
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        try:
+            self.li_proc = subprocess.Popen(args, cwd=str(LI_DIR), stdout=self.li_log,
+                                            stderr=subprocess.STDOUT, creationflags=flags)
+        except Exception as e:
+            self.mode = None
+            self.btn_run.config(state="normal")
+            self.btn_li.config(state="normal", text="Buscar no LinkedIn")
+            if self.li_log:
+                self.li_log.close()
+                self.li_log = None
+            messagebox.showerror("LinkedIn", f"Não consegui iniciar: {e}")
+
+    def _cdp_up(self) -> bool:
+        try:
+            with urllib.request.urlopen(LI_CDP, timeout=1.5) as r:
+                return r.status == 200
+        except Exception:
+            return False
+
+    def _launch_debug_chrome(self):
+        try:
+            subprocess.Popen([str(LI_PY), "launch_chrome.py"], cwd=str(LI_DIR),
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            for _ in range(30):
+                time.sleep(1)
+                if self._cdp_up():
+                    return
+        except Exception:
+            pass
+
+    def _li_status(self):
+        try:
+            return json.loads(LI_STATUS.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+    def _poll_linkedin(self):
+        st = self._li_status()
+        alive = self.li_proc is not None and self.li_proc.poll() is None
+        if alive:
+            self._render_li_running(st)
+        elif self.li_proc is not None:
+            self._render_li_done(st, self.li_proc.poll())
+        elif self.li_finished:
+            pass
+        else:
+            self._render_li_idle(st)
+
+    def _render_li_running(self, st):
+        st = st or {}
+        total = max(int(st.get("total_pages") or 1), 1)
+        done = int(st.get("done_pages") or 0)
+        self._frac = min(0.99, done / total + 0.02)
+        self._draw_progress()
+        self._draw_cover("in")
+        busca = (st.get("search") or "LinkedIn")[:38]
+        self.now.config(text=f"LinkedIn · {busca}", fg=TEXT)
+        self.detail.config(text=f"página {st.get('page', 0)} de {st.get('pages', 2)} · "
+                                f"{st.get('found', 0)} vagas · {self._elapsed(st)}")
+        self.badge.config(text="modo seguro", fg=MUTED)
+        self.time.config(text=self._elapsed(st))
+
+    def _render_li_done(self, st, code):
+        if self.li_finished:
+            return
+        self.li_finished = True
+        if self.li_log:
+            self.li_log.close()
+            self.li_log = None
+        self.btn_run.config(state="normal")
+        self.btn_li.config(state="normal", text="Buscar no LinkedIn")
+        st = st or {}
+        if code == 0 and st.get("state") == "done":
+            dur = self._duration(st)
+            self._frac = 1.0
+            self._draw_progress()
+            self._draw_cover("in")
+            self.now.config(text="LinkedIn concluído", fg=TEXT)
+            self.detail.config(text=f"{st.get('found', 0)} vagas · relatório pronto · {dur}")
+            self.badge.config(text="relatório", fg=MUTED)
+            self.time.config(text=dur)
+            self._append_log(f"LinkedIn: {st.get('found', 0)} vagas em {dur} (relatório salvo)")
+            for t in (st.get("top") or [])[:5]:
+                self._append_log(f"  {t.get('match_pct', 0):3}% {str(t.get('title'))[:52]} | {str(t.get('company'))[:26]}")
+        elif code == 3 or st.get("state") == "blocked":
+            self._draw_cover("!")
+            self.now.config(text="LinkedIn: CAPTCHA/desafio — parei", fg=ERR)
+            self.detail.config(text=(st.get("message") or "verifique no Chrome")[:110])
+            self.badge.config(text="bloqueado", fg=ERR)
+            self._append_log(f"LinkedIn parou: {st.get('message', '')}")
+        elif code == 4:
+            self.now.config(text="LinkedIn: já rodou hoje", fg=TEXT)
+            self.detail.config(text=(st.get("message") or "use --force para repetir")[:110])
+            self.badge.config(text="1x/dia", fg=MUTED)
+            self._append_log("LinkedIn: já rodou hoje; não repeti.")
+        else:
+            self._draw_cover("!")
+            self.now.config(text="LinkedIn falhou", fg=ERR)
+            self.detail.config(text=(st.get("message") or f"código {code}")[:110])
+            self.badge.config(text=f"código {code}", fg=ERR)
+            self._append_log(f"LinkedIn falhou ({code}): {st.get('message', '')}")
+
+    def _render_li_idle(self, st):
+        self._draw_cover("in")
+        self.now.config(text="LinkedIn", fg=TEXT)
+        if st and st.get("state") == "done":
+            self.detail.config(text=f"última busca: {st.get('found', 0)} vagas · {self._duration(st)}")
+            self.badge.config(text="relatório", fg=MUTED)
+        else:
+            self.detail.config(text="modo seguro: 2 páginas · últimas 24h · 1x/dia")
+            self.badge.config(text="", fg=MUTED)
+        self.time.config(text="")
+
+    def open_linkedin_report(self):
+        if LI_REPORT.exists():
+            os.startfile(LI_REPORT)  # noqa: S606
+        else:
+            self._append_log("Relatório do LinkedIn ainda não existe — rode 'Buscar no LinkedIn'.")
 
     def open_dashboard(self):
         p = OUT / "dashboard.html"
@@ -222,6 +407,10 @@ class VagasApp:
 
     # ------------------------------------------------------------------ loop
     def _poll(self):
+        if self.mode == "linkedin":
+            self._poll_linkedin()
+            self.root.after(500, self._poll)
+            return
         st = self._status()
         alive = self.proc is not None and self.proc.poll() is None
         external = (not alive) and bool(st) and st.get("state") == "running" and self._fresh(st)
@@ -290,6 +479,7 @@ class VagasApp:
             self.log_file.close()
             self.log_file = None
         self.btn_run.config(state="normal", text="▶  Atualizar base")
+        self.btn_li.config(state="normal")
         self.proc = None
         st = st or {}
         self._frac = 1.0 if st.get("state") == "done" else 0.0
