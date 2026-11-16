@@ -141,7 +141,8 @@ SEARCHES = [
      "location": "European Union", "tpr": "r604800", "wt": "2"},
 ]
 
-CARD_SEL = ("li[data-occludable-job-id], div.job-card-container, li.jobs-search-results__list-item, "
+CARD_SEL = ("[componentkey^='job-card-component-ref-'], li[data-occludable-job-id], "
+            "div.job-card-container, li.jobs-search-results__list-item, "
             "div.job-search-card, li.scaffold-layout__list-item")
 DETAIL_SEL = ("#job-details, .jobs-description__content, .jobs-description-content__text, "
               ".jobs-search__job-details--container, .show-more-less-html__markup, "
@@ -281,6 +282,10 @@ def open_search(page, s: dict, start: int = 0) -> int:
 
 
 def card_job_id(card) -> str:
+    ck = card.get_attribute("componentkey") or ""
+    m = re.search(r"job-card-component-ref-(\d+)", ck)
+    if m:
+        return m.group(1)
     jid = card.get_attribute("data-occludable-job-id") or ""
     if jid:
         return jid.strip()

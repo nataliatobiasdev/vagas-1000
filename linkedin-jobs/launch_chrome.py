@@ -12,7 +12,7 @@ Uso:
     python launch_chrome.py --status   # mostra se a porta 9222 está no ar
     python launch_chrome.py --clean    # apaga a cópia do perfil (faça isso ao terminar)
 
-A cópia fica em %TEMP%\\linkedin-debug-profile (cookies ficam lá — apague com --clean).
+A cópia fica em linkedin-jobs\.profile (cookies ficam lá — apague com --clean).
 """
 from __future__ import annotations
 
@@ -26,9 +26,10 @@ import time
 import urllib.request
 from pathlib import Path
 
+HERE = Path(__file__).resolve().parent
 CDP_PORT = 9222
 SRC_PROFILE = Path(os.environ.get("LOCALAPPDATA", "")) / "Google" / "Chrome" / "User Data"
-DST_PROFILE = Path(os.environ.get("TEMP", ".")) / "linkedin-debug-profile"
+DST_PROFILE = HERE / ".profile"          # fica no projeto (ignorado pelo git), não no %TEMP%
 START_URL = "https://www.linkedin.com/jobs/"
 
 # o mínimo para o Chrome reconhecer o perfil e descriptografar os cookies do seu usuário
@@ -51,7 +52,7 @@ def chrome_path() -> Path:
     for c in cands:
         if c.exists():
             return c
-    raise SystemExit("Chrome não encontrado. Instale o Google Chrome ou rode o setup.bat do vagas-scraper.")
+    raise SystemExit("Chrome não encontrado. Instale o Google Chrome ou rode instalar.bat.")
 
 
 def port_up() -> dict | None:
