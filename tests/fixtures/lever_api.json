@@ -1,0 +1,28 @@
+[
+  {
+    "id": "abc-1",
+    "text": "Senior Salesforce Developer",
+    "workplaceType": "remote",
+    "categories": { "team": "Prod", "department": "Eng", "location": "Brazil", "commitment": "Homeoffice" },
+    "hostedUrl": "https://jobs.lever.co/acme/abc-1",
+    "description": "<div><p>Build with Apex and LWC.</p></div>",
+    "additional": "<div><p>AWS Lambda is a plus.</p></div>",
+    "lists": [{ "text": "Requirements", "content": "<ul><li>SOQL</li><li>Go</li></ul>" }]
+  },
+  {
+    "id": "abc-2",
+    "text": "Hybrid Role",
+    "workplaceType": "hybrid",
+    "categories": { "team": "Prod", "location": "Brazil" },
+    "hostedUrl": "https://jobs.lever.co/acme/abc-2",
+    "description": "<p>Hybrid.</p>"
+  },
+  {
+    "id": "abc-3",
+    "text": "US Only Role",
+    "workplaceType": "remote",
+    "categories": { "team": "Sales", "location": "United States" },
+    "hostedUrl": "https://jobs.lever.co/acme/abc-3",
+    "description": "<p>US only.</p>"
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "jobs": [
+    {
+      "id": "as-1",
+      "title": "Staff Software Engineer",
+      "location": "São Paulo",
+      "secondaryLocations": [{ "location": "Remote - Brazil" }],
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "department": "Engineer",
+      "employmentType": "FullTime",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/as-1",
+      "descriptionPlain": "Go, AWS and Kafka. Inglês fluente.",
+      "isListed": true
+    },
+    {
+      "id": "as-2",
+      "title": "Sales Role",
+      "location": "New York",
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "department": "Sales",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/as-2",
+      "descriptionPlain": "Vendas.",
+      "isListed": true
+    },
+    {
+      "id": "as-3",
+      "title": "Unlisted Role",
+      "location": "Brazil",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/as-3",
+      "isListed": false
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+# ambiente e caches
+.venv/
+linkedin-jobs/.venv/
+.dsh-pyenv/
+.tmp/
+__pycache__/
+*.pyc
+.chrome-test*/
+.chrome-test2/
+
+# dados e saidas geradas (ficam so na sua maquina)
+data/*.db
+data/*.db-journal
+out/
+logs/
+linkedin-jobs/out/
+
+# sistema
+Thumbs.db
+desktop.ini

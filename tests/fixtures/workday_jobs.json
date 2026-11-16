@@ -1,0 +1,17 @@
+{
+  "total": 2,
+  "jobPostings": [
+    {
+      "title": "Technical Architect",
+      "externalPath": "/job/Brazil---Remote/Technical-Architect_JR123",
+      "locationsText": "Brazil - Remote",
+      "postedOn": "Publicado há 3 dias"
+    },
+    {
+      "title": "Customer Success Manager",
+      "externalPath": "/job/Brazil---Sao-Paulo/CSM_JR456",
+      "locationsText": "Brazil - Sao Paulo",
+      "postedOn": "Publicado há 1 semana"
+    }
+  ]
+}

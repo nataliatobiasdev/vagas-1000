@@ -1,0 +1,22 @@
+{
+  "jobs": [
+    {
+      "id": 111,
+      "title": "Pessoa Desenvolvedora Salesforce Sênior | CRM Engineering",
+      "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/111",
+      "location": { "name": "São Paulo, Brazil" },
+      "departments": [{ "name": "CRM Engineering" }],
+      "metadata": [{ "name": "Employment Type", "value": "Full-time" }],
+      "content": "&lt;h3&gt;Sobre a vaga&lt;/h3&gt;&lt;p&gt;Apex, LWC, SOQL e &lt;b&gt;AWS Lambda&lt;/b&gt;.&lt;/p&gt;"
+    },
+    {
+      "id": 222,
+      "title": "Account Executive",
+      "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/222",
+      "location": { "name": "Remote - USA" },
+      "departments": [],
+      "metadata": null,
+      "content": "&lt;p&gt;Vendas B2B.&lt;/p&gt;"
+    }
+  ]
+}
