@@ -22,7 +22,7 @@ Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi desco
 | `vagas1000.exe` empacotado: captura real de 2 empresas, banco, painel, configuração | <span class="ok">passou</span> |
 | Self-test do módulo LinkedIn (pontuação, ranking, relatório) | <span class="ok">passou</span> |
 | Busca real no LinkedIn | <span class="bad">não testada</span> (veja A3) |
-| Workflow CI no GitHub (testes, `.exe`, fumaça, instalador NSIS) | <span class="ok">passou</span> na 3ª tentativa (as duas primeiras acharam o problema 5) |
+| Workflow CI no GitHub (testes, `.exe`, fumaça, instalador NSIS) | <span class="ok">passou</span> na 3ª tentativa (a 1ª falhou porque o teste não esperava o `.exe` gráfico; a 2ª achou o problema 5) |
 | Workflows Docs e Release | <span class="bad">dependem de você</span>: ativar o Pages e criar a tag (veja A2) |
 
 ## Corrigido nesta rodada
