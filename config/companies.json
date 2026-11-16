@@ -600,6 +600,32 @@
       "access_code": "BR_HIRING",
       "composite_score": 40.0,
       "fetch_details": false
+    },
+    {
+      "company_id": "ifood",
+      "name": "iFood",
+      "adapter": "greenhouse_api",
+      "board_url": "https://boards-api.greenhouse.io/v1/boards/ifoodcarreiras/jobs",
+      "board_token": "ifoodcarreiras",
+      "site_filters": {},
+      "location_include": "brazil|brasil|osasco|são paulo|sao paulo",
+      "title_include": "engineer|developer|software|backend|frontend|full stack|fullstack|data|cientista|analista bi|analista de crm|crm|security|red team|sre|devops|arquitet|tech|salesforce|cloud|machine learning|\\bml\\b",
+      "title_exclude": "advogado|executivo|vendas|sdr|growth|marketing|comunicação|\\brh\\b|payroll|tesouraria|estágio|aprendiz|negócios|operações|logística|crédito|políticas",
+      "access_code": "BR_HIRING",
+      "composite_score": 80.0,
+      "fetch_details": false
+    },
+    {
+      "company_id": "cea",
+      "name": "C&A Brasil",
+      "adapter": "gupy",
+      "board_url": "https://cea.gupy.io",
+      "site_filters": {},
+      "title_include": "desenvolvedor|developer|software|dados|data|qa|quality|test|devops|sre|cloud|security|segurança|python|java|golang|salesforce|arquitet|backend|frontend|fullstack|engenheir|analista de sistemas|sap|\\bbi\\b|tecnologia",
+      "title_exclude": "estágio|estagi|aprendiz|assistente|auxiliar|vendedor|caixa|operador|comprador|processos|técnico|segurança do trabalho",
+      "access_code": "BR_HIRING",
+      "composite_score": 45.0,
+      "fetch_details": false
     }
   ]
 }

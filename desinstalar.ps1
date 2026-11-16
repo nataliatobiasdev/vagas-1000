@@ -17,7 +17,7 @@ try {
 }
 
 Write-Host "`n==> Removendo atalhos" -ForegroundColor Cyan
-foreach ($n in @("Vagas - atualizar agora.lnk", "Vagas - abrir painel.lnk")) {
+foreach ($n in @("Vagas - abrir app.lnk", "Vagas - atualizar agora.lnk", "Vagas - abrir painel.lnk")) {
     $p = Join-Path $desktop $n
     if (Test-Path $p) { Remove-Item $p -Force; Write-Host "    removido: $n" }
 }

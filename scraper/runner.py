@@ -41,6 +41,18 @@ def collect_one(collector, driver, cfg: dict, driver_factory=None, retries: int 
             quit_driver(driver)
             driver = driver_factory()
 
+def write_status(out_dir: Path, **data) -> None:
+    """Grava out/status.json (o app lê para a barra de progresso estilo player)."""
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        payload = {"updated_at": datetime.now().isoformat(timespec="seconds"), **data}
+        tmp = out_dir / ".status.tmp"
+        tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(out_dir / "status.json")
+    except Exception as e:
+        log.debug("não consegui gravar status: %s", e)
+
+
 def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
         driver_factory=None) -> list[Job]:
     cfg = load_json(ROOT / "config" / "companies.json")["companies"]
@@ -48,14 +60,18 @@ def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
     out_dir = out_dir or ROOT / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    selected = [c for c in cfg if not only or c["company_id"] in only]
     jobs: list[Job] = []
     status: dict[str, dict] = {}
     drivers = [driver]                     # o 1º é do chamador; os criados aqui são encerrados no fim
     started = time.perf_counter()
+    progress = {"state": "running", "started_at": datetime.now().isoformat(timespec="seconds"),
+                "total": len(selected), "done": 0, "current": None, "results": [], "errors": []}
+    write_status(out_dir, **progress)
     try:
-        for c in cfg:
-            if only and c["company_id"] not in only:
-                continue
+        for c in selected:
+            progress["current"] = {"company_id": c["company_id"], "name": c["name"]}
+            write_status(out_dir, **progress)
             t0 = time.perf_counter()
             got, drv, err = collect_one(COLLECTORS[c["adapter"]], drivers[-1], c, driver_factory)
             elapsed = time.perf_counter() - t0
@@ -66,10 +82,18 @@ def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
                           type(err).__name__, err, exc_info=err)
                 status[c["company_id"]] = {"ok": False, "error": f"{type(err).__name__}: {err}",
                                            "seconds": round(elapsed, 1)}
+                progress["errors"].append({"company_id": c["company_id"], "name": c["name"],
+                                           "error": f"{type(err).__name__}: {err}"})
             else:
                 log.info("[%s] %d vagas em %.1fs", c["company_id"], len(got), elapsed)
                 status[c["company_id"]] = {"ok": True, "count": len(got), "seconds": round(elapsed, 1)}
                 jobs.extend(got)
+            progress["done"] += 1
+            progress["results"].append({"company_id": c["company_id"], "name": c["name"],
+                                        "ok": err is None, "count": len(got) if err is None else 0,
+                                        "seconds": round(elapsed, 1)})
+            progress["current"] = None
+            write_status(out_dir, **progress)
 
         for j in jobs:
             score_job(j, profile)
@@ -91,7 +115,17 @@ def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
                 reports.build_presenciais(conn, out_dir / "presenciais.md")
             finally:
                 conn.close()
+
+        progress.update(state="done", finished_at=datetime.now().isoformat(timespec="seconds"),
+                        total_jobs=len(jobs),
+                        eligible=sum(1 for j in jobs if j.verdict == "ELIGIBLE"),
+                        all_failed=bool(status) and not any(st.get("ok") for st in status.values()))
+        write_status(out_dir, **progress)
         return jobs
+    except Exception as e:
+        progress.update(state="crashed", error=f"{type(e).__name__}: {e}")
+        write_status(out_dir, **progress)
+        raise
     finally:
         for extra in drivers[1:]:
             quit_driver(extra)

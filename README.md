@@ -52,6 +52,8 @@ Abre, via **Chrome + Selenium**, os portais de vagas de 3 empresas da base v3, f
 | PRIO (petróleo) | prio.gupy.io | `gupy` | 55,0 |
 | Piracanjuba (alimentos) | piracanjuba.gupy.io | `gupy` | 35,0 |
 | Bauducco (alimentos) | bauducco.gupy.io | `gupy` | 40,0 |
+| iFood | boards.greenhouse.io/ifoodcarreiras | `greenhouse_api` | 80,0 |
+| C&A Brasil | cea.gupy.io | `gupy` | 45,0 |
 
 **Salesforce** entra pelo **Workday** (`/wday/cxs/.../jobs`): lista paginada por POST e descrição por GET.
 O Workday responde 429 quando aceleramos, então o coletor usa backoff (8–24 s) e pausas de 3–6 s.
@@ -70,6 +72,11 @@ Workday, Canonical/Turing via Greenhouse); estes continuam sem feed automatizáv
 - **Zucchetti** — software house italiana (Mogi Mirim/Limeira): site devolve 403 e não há board público;
   vagas aparecem no LinkedIn e no Remotive (ex.: Fullstack Developer remoto Brasil).
 - **Toptal** (403), **Automattic/Deel** (sem feed), **GitLab** (sem vaga para Brasil).
+
+**Marketplaces/e-commerce sem feed público** (checados em 2026-11-16): Mercado Livre, OLX, Enjoei,
+Magalu, Americanas, Shopee, Dafiti, Netshoes, Rappi, Loggi e MadeiraMadeira usam portais próprios/JS
+sem ATS público; a Shein publica só nos EUA. O **iFood** entrou pelo Greenhouse (`ifoodcarreiras`,
+68 vagas, 30 no Brasil). O **Mercado Livre** e a **OLX** exigiriam scraper próprio (como a Stone).
 
 Boards agregadores úteis para acompanhar à mão: remote.com/jobs, remotive, Torre, Accel/Correlation
 (e o LinkedIn da sua sessão). Eles listam “remote - Brazil only” em USD de empresas que não publicam ATS.
@@ -116,21 +123,16 @@ de abrir cada vaga (era o que fazia a CI&T gastar ~6 min).
 
 ## Instalar e rodar (Windows)
 
-**Instalador:** dois cliques em **`instalar.bat`**. Ele:
-1. confere Python 3.9+ e Google Chrome;
-2. cria o `.venv` e instala as dependências;
-3. roda os testes offline (aborta se falharem);
-4. pergunta o horário e agenda a **atualização diária** na Tarefa Agendada do Windows;
-5. cria atalhos na Área de Trabalho (**Vagas - atualizar agora** e **Vagas - abrir painel**);
-6. opcionalmente roda a primeira captura.
+**Instalador:** dois cliques em **`instalar.bat`**. Ele confere Python 3.9+ e Google Chrome, cria o `.venv`,
+instala as dependências, roda os testes offline, cria os atalhos (**Vagas - abrir app** e
+**Vagas - abrir painel**) e oferece abrir o app. **Não agenda nada** — a atualização é pelo botão.
 
-Reagendar: rode `instalar.bat` de novo (ou `instalar.bat -Hora 07:30`). Desinstalar:
-`desinstalar.bat` (mantém `data/` e `out/`; use `-RemoverVenv` para apagar o ambiente).
+**App (janela):** `app.bat` (ou o atalho). Tem o botão **Atualizar base**, os números da base
+(vagas abertas, elegíveis, empresas) e uma **barra estilo player** no rodapé com: empresa que está sendo
+extraída, progresso (ex.: “12 de 48”), tempo, erros por empresa e o resumo no fim. O app acompanha também
+uma execução iniciada por `run.bat` (lê `out/status.json`). Logs: `logs/scraper.log` e `logs/app-run.log`.
 
-A tarefa diária roda `pythonw main.py --no-open` na pasta do projeto, sem janela; o progresso fica em
-`logs/scraper.log`. O Windows executa com a máquina ligada e o usuário logado (padrão).
-
-**Uso manual:** `run.bat` (captura + painel), `run.bat --show --only ciandt`, `python main.py --painel`.
+**Manual:** `run.bat` (captura + painel), `run.bat --show --only ciandt`, `python main.py --painel`.
 Requer Google Chrome; o Selenium Manager baixa o chromedriver compatível sozinho.
 
 Saída em `out/`: `vagas-latest.json`, `vagas-latest.csv`, `dashboard.html`, `presenciais.md` e cópias com
@@ -189,7 +191,7 @@ Cidades da Bahia (Camaçari, Simões Filho, Candeias, Lauro de Freitas, Feira de
 foram adicionadas ao reconhecimento de localização — antes “Camaçari, BA” caía como local indefinido.
 Hoje o relatório lista ~92 presenciais em 14 locais.
 
-## Tempo de execução (medido em 2026-11-16, 48 empresas, 1.182 vagas)
+## Tempo de execução (medido em 2026-11-16, 50 empresas, 1.200 vagas)
 
 | Empresa | Fonte | Tempo |
 |---|---|---|
