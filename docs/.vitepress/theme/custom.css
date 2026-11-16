@@ -1,0 +1,88 @@
+/* Paleta e tipografia do design system Nevora, as mesmas do app (scraper/theme.py). */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource-variable/jetbrains-mono';
+
+:root {
+  --vp-font-family-base: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono Variable', Consolas, monospace;
+  --nv-heading: 'Space Grotesk Variable', 'Inter Variable', sans-serif;
+
+  /* Tema claro: tons do Nevora escurecidos para contraste AA sobre branco */
+  --vp-c-bg: #ffffff;
+  --vp-c-bg-alt: #f6f7fc;
+  --vp-c-bg-soft: #eef0f8;
+  --vp-c-divider: #dde1ee;
+  --vp-c-text-1: #0b0e19;
+  --vp-c-text-2: #525c78;
+  --vp-c-brand-1: #6c5ce7;
+  --vp-c-brand-2: #7b6cf0;
+  --vp-c-brand-3: #5a4bd1;
+  --vp-c-brand-soft: rgba(108, 92, 231, 0.12);
+  --nv-teal: #0d8a83;
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #6c5ce7 15%, #0d8a83);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, #9d8cff 50%, #42d6cd 50%);
+  --vp-home-hero-image-filter: blur(64px);
+  --vp-button-brand-text: #ffffff;
+}
+
+.dark {
+  --vp-c-bg: #0b0e19;
+  --vp-c-bg-alt: #0e121e;
+  --vp-c-bg-soft: #151a2b;
+  --vp-c-bg-elv: #151a2b;
+  --vp-c-divider: #2c3142;
+  --vp-c-gutter: #05070d;
+  --vp-c-text-1: #f4f6ff;
+  --vp-c-text-2: #a6b1cb;
+  --vp-c-text-3: #7d87a3;
+  --vp-c-brand-1: #9d8cff;
+  --vp-c-brand-2: #b3a6ff;
+  --vp-c-brand-3: #8a77ff;
+  --vp-c-brand-soft: rgba(157, 140, 255, 0.16);
+  --vp-code-block-bg: #0e121e;
+  --nv-teal: #42d6cd;
+  --vp-home-hero-name-background: linear-gradient(120deg, #9d8cff 15%, #42d6cd);
+  --vp-button-brand-text: #0b0e19;
+  --vp-button-brand-hover-text: #0b0e19;
+  --vp-button-brand-active-text: #0b0e19;
+}
+
+/* Iluminação atmosférica do Nevora no tema escuro */
+.dark body {
+  background-image:
+    radial-gradient(1100px circle at 15% -5%, rgba(157, 140, 255, 0.06) 0%, transparent 65%),
+    radial-gradient(900px circle at 85% 35%, rgba(66, 214, 205, 0.035) 0%, transparent 60%);
+  background-attachment: fixed;
+}
+
+.vp-doc h1, .vp-doc h2, .vp-doc h3, .VPHero .name, .VPHero .text, .VPFeature .title, .VPNavBarTitle .title {
+  font-family: var(--nv-heading);
+  letter-spacing: -0.01em;
+}
+.vp-doc th { font-family: var(--vp-font-family-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--vp-c-text-2); }
+.VPSidebarItem.is-active > .item { box-shadow: inset 2px 0 0 var(--vp-c-brand-1); padding-left: 10px; margin-left: -12px; }
+.VPFeature { border-radius: 16px !important; }
+
+@media (min-width: 768px) { .vp-doc table { display: table; width: 100%; } }
+.vp-doc td, .vp-doc th { vertical-align: top; }
+.vp-doc .mermaid { display: block; text-align: center; max-width: 100%; padding: 16px; margin: 16px 0; border: 1px solid var(--vp-c-divider); border-radius: 12px; background: var(--vp-c-bg-soft); overflow-x: auto; }
+.vp-doc .mermaid svg { max-width: 100%; height: auto; }
+.vp-doc img.shot { max-width: 100%; height: auto; border: 1px solid var(--vp-c-divider); border-radius: 12px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18); }
+.vp-doc .ok { color: var(--vp-c-green-1); font-weight: 600; }
+.vp-doc .bad { color: var(--vp-c-red-1); font-weight: 600; }
+.vp-doc .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--vp-c-divider); vertical-align: -2px; margin-right: 4px; }
+
+/* Selos de estado: o que existe × o que é plano */
+.vp-doc .tag { display: inline-block; font: 600 11px/1 var(--vp-font-family-mono); letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; vertical-align: 2px; white-space: nowrap; }
+.vp-doc .tag.done { color: var(--vp-c-green-1); background: var(--vp-c-green-soft); }
+.vp-doc .tag.plan { color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }
+.vp-doc .tag.open { color: var(--vp-c-yellow-1); background: var(--vp-c-yellow-soft); }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }
+.stats div { border: 1px solid var(--vp-c-divider); border-radius: 12px; padding: 14px 16px; background: var(--vp-c-bg-soft); }
+.stats b { display: block; font: 600 26px/1.2 var(--nv-heading); background: linear-gradient(120deg, var(--vp-c-brand-1), var(--nv-teal)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.stats span { font-size: 13px; color: var(--vp-c-text-2); }
+@media (min-width: 960px) { .VPHomeHero .image-src { max-width: 280px; border-radius: 22%; } }

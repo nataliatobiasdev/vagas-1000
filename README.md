@@ -1,6 +1,32 @@
-# vagas-scraper
+# vagas1000
 
-Abre, via **Chrome + Selenium**, os portais de vagas de 3 empresas da base v3, filtra e extrai para JSON/CSV.
+[![CI](https://github.com/nataliatobiasdev/vagas-1000/actions/workflows/ci.yml/badge.svg)](https://github.com/nataliatobiasdev/vagas-1000/actions/workflows/ci.yml)
+[![Docs](https://github.com/nataliatobiasdev/vagas-1000/actions/workflows/docs.yml/badge.svg)](https://nataliatobiasdev.github.io/vagas-1000/)
+
+App desktop para Windows que **captura as vagas de TI de 54 empresas**, pontua cada uma pelo seu perfil
+(título, tecnologia, senioridade e se você pode aplicar do Brasil) e entrega um **painel offline** com o
+que vale a pena. Quase tudo roda por API pública, sem abrir navegador; só a Stone usa Chrome.
+
+**Documentação:** <https://nataliatobiasdev.github.io/vagas-1000/> · **Instalador:** [Releases](https://github.com/nataliatobiasdev/vagas-1000/releases)
+· **Relatório de testes:** [docs/qualidade/relatorio.md](docs/qualidade/relatorio.md) · **Mudanças:** [CHANGELOG.md](CHANGELOG.md)
+
+## Instalar
+
+1. Baixe `vagas1000-Setup-X.Y.Z.exe` em [Releases](https://github.com/nataliatobiasdev/vagas-1000/releases) e execute
+   (por usuário, sem administrador; o SmartScreen pode avisar “Editor desconhecido”: *Mais informações → Executar assim mesmo*).
+2. Abra o **vagas1000** pelo atalho e clique em **Atualizar base**.
+
+Seus dados ficam em `%APPDATA%\vagas1000` e **nunca** são apagados ao desinstalar. Precisa de Google Chrome só para a Stone.
+Para rodar do código-fonte (Python 3.9+): `instalar.bat`. Detalhes em [Instalação](docs/guia/instalacao.md).
+
+## Interface e versões
+
+A interface segue o design system **Nevora** (violeta e teal sobre neutros escuros; Space Grotesk, Inter e
+JetBrains Mono empacotadas), igual ao [CAM](https://github.com/nataliatobiasdev/agregador-carreiras).
+Versões em [SemVer](https://semver.org/lang/pt-BR/) com tag `vX.Y.Z`, CHANGELOG e instalador na Release; o fluxo é
+branch → Pull Request → CI verde → merge ([Versionamento](docs/versionamento.md)).
+
+## Empresas
 
 | Empresa | Portal | Adaptador | Nota composta |
 |---|---|---|---|
@@ -131,27 +157,24 @@ O board novo do Greenhouse renderiza **no máximo 50 vagas** (sem "carregar mais
 "Salesforce Sênior" ficava fora. A API traz todas e já inclui a descrição, o que também dispensa o passo
 de abrir cada vaga (era o que fazia a CI&T gastar ~6 min).
 
-## Instalar e rodar (Windows)
+## Rodar do código-fonte
 
-**Instalador:** dois cliques em **`instalar.bat`**. Ele confere Python 3.9+ e Google Chrome, cria o `.venv`,
-instala as dependências, roda os testes offline, cria os atalhos (**Vagas - abrir app** e
-**Vagas - abrir painel**) e oferece abrir o app. **Não agenda nada** — a atualização é pelo botão.
+**Instalador a partir do código:** dois cliques em **`instalar.bat`**: confere Python 3.9+ e Google Chrome, cria o
+`.venv`, instala as dependências, roda os testes offline, cria os atalhos (**vagas1000 - abrir app** e
+**vagas1000 - abrir painel**). Não agenda nada: a atualização é pelo botão.
 
-**App (janela):** `app.bat` (ou o atalho). Tem o botão **Atualizar base**, os números da base
-(vagas abertas, elegíveis, empresas) e uma **barra estilo player** no rodapé com: empresa que está sendo
-extraída, progresso (ex.: “12 de 48”), tempo, erros por empresa e o resumo no fim. O app acompanha também
-uma execução iniciada por `run.bat` (lê `out/status.json`). Logs: `logs/scraper.log` e `logs/app-run.log`.
+**App (janela):** `app.bat` (ou o atalho). Botão **Atualizar base**, números da base e uma **barra estilo player**
+com a empresa em extração, progresso (“12 de 54”), tempo e erros. Logs: `logs/scraper.log` e `logs/app-run.log`.
 
-**Manual:** `run.bat` (captura + painel), `run.bat --show --only ciandt`, `python main.py --painel`.
-Requer Google Chrome; o Selenium Manager baixa o chromedriver compatível sozinho.
+**Linha de comando:** `run.bat` (captura + painel), `run.bat --show --only stone`, `python main.py --painel`.
 
-Saída em `out/`: `vagas-latest.json`, `vagas-latest.csv`, `dashboard.html`, `presenciais.md` e cópias com
-data/hora (o projeto mantém as **60 execuções mais recentes** para não crescer sem limite).
+Saída em `out/`: `vagas-latest.json`, `vagas-latest.csv`, `dashboard.html`, `presenciais.md` e cópias com data/hora
+(as **60 execuções mais recentes**). Desenvolvimento, empacotamento e testes: [Rodar e contribuir](docs/guia/desenvolvimento.md).
 
 ## LinkedIn (modo seguro, opcional)
 
 O app tem o botão **Buscar no LinkedIn**. Ele usa o seu Chrome já logado (CDP, cópia do perfil em
-`%TEMP%\linkedin-debug-profile`), pega as **2 primeiras páginas** das buscas (últimas 24h, ordenadas por
+`linkedin-jobs\.profile`), pega as **2 primeiras páginas** das buscas (últimas 24h, ordenadas por
 data), **não abre a página de cada vaga**, faz pausas de 25–55 s entre páginas e 60–120 s entre buscas,
 **1 execução por dia** (`--force` para repetir) e **para na hora em CAPTCHA/checkpoint**.
 
@@ -161,24 +184,6 @@ Relatório: `linkedin-jobs/out/linkedin-report.md` — por padrão **mais recent
 
 > O LinkedIn não permite automação nos termos de uso. O modo seguro reduz o risco, não elimina; nunca
 > clica em candidatura, mensagem ou perfil.
-
-## Banco de dados e painel
-
-## GitHub
-O repositório já está inicializado (branch `main`). O `.gitignore` deixa de fora `.venv/`, `data/`,
-`out/` e `logs/` — código, config e testes vão para o GitHub; seus dados ficam locais.
-
-Para publicar:
-```
-powershell -ExecutionPolicy Bypass -File publicar-github.ps1
-```
-Ele abre `github.com/new`, você cria o repositório **sem README** e cola a URL. Manualmente:
-```
-git remote add origin https://github.com/USUARIO/vagas-scraper.git
-git push -u origin main
-```
-Antes do primeiro push, ajuste o autor: `git config user.email "seu@email"` e
-`git commit --amend --reset-author --no-edit` (o commit inicial foi feito com um e-mail placeholder).
 
 ## Banco de dados e painel
 Cada execução grava em `data/vagas.db` (SQLite) e regenera `out/dashboard.html`, que abre sozinho no navegador (funciona offline).
@@ -191,7 +196,7 @@ Cada execução grava em `data/vagas.db` (SQLite) e regenera `out/dashboard.html
 - Uma empresa com erro não impede as outras: o erro dela fica em `out/vagas-latest.json` (campo `status`) e em `logs/scraper.log` (o log completo de cada execução, com data e hora).
 - Se a janela do Chrome for fechada ou o navegador cair no meio, o robô abre um Chrome novo e repete **aquela** empresa uma vez.
 - Se **todas** as empresas falharem, a execução **não** é gravada no banco: o painel continua mostrando a última execução boa.
-- Se o Chrome nem abrir, rode `setup.bat` (confere Python, Chrome e `.venv`) e veja o erro no fim de `logs/scraper.log`.
+- Se o Chrome nem abrir, só a Stone falha (as outras 53 seguem). Confira se o Google Chrome está instalado e veja o erro em `logs/scraper.log`.
 
 ## Testes (offline, sem Chrome)
 ```
@@ -200,9 +205,10 @@ python -m unittest discover -s tests -v
 Os parsers rodam contra HTML capturado dos portais reais (`tests/fixtures`).
 
 ## Como funciona
-- `scraper/collectors.py` — Selenium: abre a URL com filtros, espera o render, pagina (Stone), abre o detalhe (Lever/Greenhouse). Greenhouse também tem um coletor por API pública (`greenhouse_api`, sem Selenium).
+- `scraper/collectors.py` — um coletor por fonte: API pública (Greenhouse, Lever, Ashby), Gupy (SSR), Workday e Selenium só para a Stone.
 - `scraper/parsers.py` — HTML → `Job` (BeautifulSoup). Seletores estão só aqui.
 - `scraper/filtering.py` — pontuação (título 30 / tecnologia 35 / senioridade 15 / elegibilidade 20) e veredito ELIGIBLE/MAYBE/BLOCKED.
+- `scraper/paths.py` — onde ficam os arquivos (código-fonte × instalado). `scraper/theme.py` — tokens Nevora. `scraper/version.py` — versão.
 - `scraper/db.py` — histórico em SQLite. `scraper/dashboard.py` + `scraper/templates/dashboard.html` — painel.
 - `config/companies.json` — empresas e filtros de URL. `config/profile.json` — seu perfil e pesos.
 
