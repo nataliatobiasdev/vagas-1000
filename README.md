@@ -54,6 +54,10 @@ Abre, via **Chrome + Selenium**, os portais de vagas de 3 empresas da base v3, f
 | Bauducco (alimentos) | bauducco.gupy.io | `gupy` | 40,0 |
 | iFood | boards.greenhouse.io/ifoodcarreiras | `greenhouse_api` | 80,0 |
 | C&A Brasil | cea.gupy.io | `gupy` | 45,0 |
+| Cogna Educação | cogna.gupy.io | `gupy` | 55,0 |
+| Hospital Santa Helena | santahelena.gupy.io | `gupy` | 40,0 |
+| AlmapBBDO (agência) | almapbbdo.gupy.io | `gupy` | 50,0 |
+| Cacau Show (alimentos) | cacaushow.gupy.io | `gupy` | 45,0 |
 
 **Salesforce** entra pelo **Workday** (`/wday/cxs/.../jobs`): lista paginada por POST e descrição por GET.
 O Workday responde 429 quando aceleramos, então o coletor usa backoff (8–24 s) e pausas de 3–6 s.
@@ -76,7 +80,13 @@ Workday, Canonical/Turing via Greenhouse); estes continuam sem feed automatizáv
 **Marketplaces/e-commerce sem feed público** (checados em 2026-11-16): Mercado Livre, OLX, Enjoei,
 Magalu, Americanas, Shopee, Dafiti, Netshoes, Rappi, Loggi e MadeiraMadeira usam portais próprios/JS
 sem ATS público; a Shein publica só nos EUA. O **iFood** entrou pelo Greenhouse (`ifoodcarreiras`,
-68 vagas, 30 no Brasil). O **Mercado Livre** e a **OLX** exigiriam scraper próprio (como a Stone).
+68 vagas, 30 no Brasil). Mercado Livre e OLX exigiriam scraper próprio (como a Stone).
+
+**Setores checados em 2026-11-16:** educação (Cogna entrou; PUC-SP e Unifran sem vaga técnica; federais são
+concurso), saúde (Rede D'Or e Santa Helena; Hapvida, Dasa, Amil, Omint e Unimed-POA sem board técnico),
+convênios (Porto Saúde; Omint sem TI), agências (AlmapBBDO entrou; Ogilvy sem TI), restaurantes
+(Cacau Show entrou; KFC e Bob's sem TI; McDonald's/Arcos Dorados sem board público) e órgãos públicos
+(sem feed; SERPRO, DATAPREV e BNDES são concurso).
 
 Boards agregadores úteis para acompanhar à mão: remote.com/jobs, remotive, Torre, Accel/Correlation
 (e o LinkedIn da sua sessão). Eles listam “remote - Brazil only” em USD de empresas que não publicam ATS.
@@ -191,7 +201,7 @@ Cidades da Bahia (Camaçari, Simões Filho, Candeias, Lauro de Freitas, Feira de
 foram adicionadas ao reconhecimento de localização — antes “Camaçari, BA” caía como local indefinido.
 Hoje o relatório lista ~92 presenciais em 14 locais.
 
-## Tempo de execução (medido em 2026-11-16, 50 empresas, 1.200 vagas)
+## Tempo de execução (medido em 2026-11-16, 54 empresas, 1.207 vagas)
 
 | Empresa | Fonte | Tempo |
 |---|---|---|

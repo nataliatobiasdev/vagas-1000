@@ -626,6 +626,54 @@
       "access_code": "BR_HIRING",
       "composite_score": 45.0,
       "fetch_details": false
+    },
+    {
+      "company_id": "cogna",
+      "name": "Cogna Educação",
+      "adapter": "gupy",
+      "board_url": "https://cogna.gupy.io",
+      "site_filters": {},
+      "title_include": "dados|data|cientista|analytics|desenvolvedor|developer|software|sistema|\\bti\\b|tecnologia|\\bbi\\b|salesforce|cloud|engenheir",
+      "title_exclude": "aprendiz|estágio|estagi|mediador|assistente|auxiliar|pedagógic|biblioteca|administrativo",
+      "access_code": "BR_HIRING",
+      "composite_score": 55.0,
+      "fetch_details": false
+    },
+    {
+      "company_id": "santahelena",
+      "name": "Hospital Santa Helena",
+      "adapter": "gupy",
+      "board_url": "https://santahelena.gupy.io",
+      "site_filters": {},
+      "title_include": "sistema|\\bti\\b|tecnologia|dados|data|analytics|desenvolvedor|salesforce|\\bbi\\b|sap",
+      "title_exclude": "técnico de segurança|técnico|assistente|auxiliar|enfermeir|médic",
+      "access_code": "BR_HIRING",
+      "composite_score": 40.0,
+      "fetch_details": false
+    },
+    {
+      "company_id": "almapbbdo",
+      "name": "AlmapBBDO",
+      "adapter": "gupy",
+      "board_url": "https://almapbbdo.gupy.io",
+      "site_filters": {},
+      "title_include": "data|dados|analytics|tecnologia|desenvolvedor|developer|sistema|\\bti\\b|\\bbi\\b|salesforce|engenheir",
+      "title_exclude": "estágio|estagi|aprendiz|assistente|auxiliar",
+      "access_code": "BR_HIRING",
+      "composite_score": 50.0,
+      "fetch_details": false
+    },
+    {
+      "company_id": "cacaushow",
+      "name": "Cacau Show",
+      "adapter": "gupy",
+      "board_url": "https://cacaushow.gupy.io",
+      "site_filters": {},
+      "title_include": "analytics|dados|data|desenvolvedor|developer|software|sistema|\\bti\\b|tecnologia|salesforce|engenheir",
+      "title_exclude": "estágio|estagi|aprendiz|assistente|auxiliar|vendedor|operador|atendente",
+      "access_code": "BR_HIRING",
+      "composite_score": 45.0,
+      "fetch_details": false
     }
   ]
 }
