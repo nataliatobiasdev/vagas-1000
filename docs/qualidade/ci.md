@@ -17,7 +17,7 @@ flowchart LR
   A[checkout] --> B["Python 3.12<br/>+ requirements-dev"] --> C["unittest<br/>52 testes"] --> D[version_info] --> E["PyInstaller<br/>vagas1000.spec"] --> F["fumaça:<br/>vagas1000.exe --scrape --painel"] --> G["NSIS<br/>makensis"] --> H["artefato<br/>vagas1000-Setup-*.exe"]
 ```
 
-O **teste de fumaça** abre o executável empacotado com `VAGAS1000_HOME` numa pasta temporária e exige que `out/dashboard.html` e `config/companies.json` existam. Ele pega o que o teste unitário não pega: arquivo de dados esquecido na spec, importação que só falha congelada.
+O **teste de fumaça** abre o executável empacotado com `VAGAS1000_HOME` numa pasta temporária e exige que `out/dashboard.html`, `config/companies.json` e `config/profile.json` existam. O `.exe` é um app gráfico, então o passo usa `Start-Process -Wait` e imprime o log em caso de falha. Ele pega o que o teste unitário não pega: arquivo de dados esquecido na spec, importação que só falha congelada.
 
 Para obter o instalador: aba **Actions** → run verde → artefato `installer`.
 

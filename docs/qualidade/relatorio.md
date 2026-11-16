@@ -22,7 +22,8 @@ Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi desco
 | `vagas1000.exe` empacotado: captura real de 2 empresas, banco, painel, configuração | <span class="ok">passou</span> |
 | Self-test do módulo LinkedIn (pontuação, ranking, relatório) | <span class="ok">passou</span> |
 | Busca real no LinkedIn | <span class="bad">não testada</span> (veja A3) |
-| Workflows do GitHub (CI, Release, Docs) | <span class="bad">ainda não executados</span> (veja A2) |
+| Workflow CI no GitHub (testes, `.exe`, fumaça, instalador NSIS) | <span class="ok">passou</span> na 3ª tentativa (as duas primeiras acharam o problema 5) |
+| Workflows Docs e Release | <span class="bad">dependem de você</span>: ativar o Pages e criar a tag (veja A2) |
 
 ## Corrigido nesta rodada
 
@@ -79,11 +80,14 @@ Na coleta ao vivo, a Salesforce recebeu **15 respostas 429** e **3 descrições 
 
 **Como resolver:** aumentar as pausas em `collect_workday` (hoje 3 a 6 s) ou reduzir `max_details`; ou rodar a Salesforce sozinha em horário calmo (`--only salesforce`). Um recuo exponencial com limite de tentativas e uma segunda passada só nas descrições que falharam resolveriam sem custo de tempo.
 
-### A2. CI, Release e Pages ainda não rodaram
+### A2. Pages e Release dependem de um passo seu
 
-A spec do PyInstaller e o `.exe` foram testados localmente. O **NSIS** (`makensis`) e os três workflows só rodam no GitHub, e este ambiente não tinha NSIS.
+O **CI está verde** no GitHub (testes, PyInstaller, teste de fumaça do `.exe` e instalador NSIS de ~25 MB como artefato `installer`). Faltam duas coisas que só você pode fazer:
 
-**Como resolver:** abrir o primeiro push, esperar o CI e baixar o artefato `installer`. Se o `choco install nsis` falhar no runner, troque por `winget` ou use a action de NSIS. Para o Pages: *Settings → Pages → Source: GitHub Actions* (uma vez).
+- **Pages:** o workflow **Docs** falha em `configure-pages` porque o Pages ainda não está ativo no repositório.
+- **Release:** nenhuma tag foi criada; o `release.yml` só roda com `git tag v1.0.0`.
+
+**Como resolver:** *Settings → Pages → Build and deployment → Source: **GitHub Actions*** (não aceite o modelo “Static HTML”); depois *Actions → Docs → Run workflow*. Para publicar a primeira Release, siga [Versionamento](/versionamento).
 
 ### A3. LinkedIn só testado offline
 
