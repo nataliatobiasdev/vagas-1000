@@ -6,9 +6,10 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from . import paths
 from .filtering import is_brazil_location
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = paths.HOME
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "dashboard.html"
 
 
@@ -36,10 +37,24 @@ def collect(conn: sqlite3.Connection) -> dict:
             "runs": runs, "companies": companies, "jobs": jobs}
 
 
+def _font_css() -> str:
+    """@font-face com Inter, Space Grotesk e JetBrains Mono embutidas (WOFF2 latino, ~200 KB): o painel segue offline."""
+    import base64
+    faces = []
+    for fam, fn, w in (("Inter Nevora", "Inter", "100 900"), ("Space Grotesk Nevora", "SpaceGrotesk", "300 700"),
+                       ("JetBrains Mono Nevora", "JetBrainsMono", "100 800")):
+        f = paths.BUNDLE / "assets" / "fonts" / f"{fn}.woff2"
+        if f.exists():
+            b64 = base64.b64encode(f.read_bytes()).decode("ascii")
+            faces.append(f'@font-face{{font-family:"{fam}";font-weight:{w};font-display:swap;'
+                         f'src:url(data:font/woff2;base64,{b64}) format("woff2")}}')
+    return "\n".join(faces)
+
+
 def build(conn: sqlite3.Connection, out_path: Path | str | None = None) -> Path:
-    out = Path(out_path) if out_path else ROOT / "out" / "dashboard.html"
+    out = Path(out_path) if out_path else paths.OUT / "dashboard.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(collect(conn), ensure_ascii=False).replace("</", "<\\/")
-    html = TEMPLATE.read_text(encoding="utf-8").replace("/*__DATA__*/null", payload)
+    html = TEMPLATE.read_text(encoding="utf-8").replace("/*__DATA__*/null", payload).replace("/*__FONTS__*/", _font_css())
     out.write_text(html, encoding="utf-8")
     return out

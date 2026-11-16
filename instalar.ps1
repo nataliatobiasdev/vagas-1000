@@ -58,17 +58,17 @@ Passo "6/6 Atalhos"
 if (-not $SemAtalhos) {
     $desktop = [Environment]::GetFolderPath("Desktop")
     $ws = New-Object -ComObject WScript.Shell
-    $l1 = $ws.CreateShortcut((Join-Path $desktop "Vagas - abrir app.lnk"))
+    $l1 = $ws.CreateShortcut((Join-Path $desktop "vagas1000 - abrir app.lnk"))
     $l1.TargetPath = Join-Path $root "app.bat"
     $l1.WorkingDirectory = $root
-    $l1.Description = "Abre o Vagas Scraper (botao de atualizar + status)"
+    $l1.Description = "Abre o vagas1000 (botao de atualizar + status)"
     $l1.Save()
-    $l2 = $ws.CreateShortcut((Join-Path $desktop "Vagas - abrir painel.lnk"))
+    $l2 = $ws.CreateShortcut((Join-Path $desktop "vagas1000 - abrir painel.lnk"))
     $l2.TargetPath = Join-Path $root "out\dashboard.html"
     $l2.Description = "Abre o painel offline"
     $l2.Save()
     # compatibilidade com atalho antigo
-    $old = Join-Path $desktop "Vagas - atualizar agora.lnk"
+    $old = Join-Path $desktop "Vagas - atualizar agora.lnk"   # atalho de versões antigas
     if (Test-Path $old) { Remove-Item $old -Force }
     Ok "atalhos na Area de Trabalho"
 } else { Aviso "atalhos ignorados (-SemAtalhos)" }
@@ -79,7 +79,7 @@ if (-not $SemPrimeiraExecucao) {
 }
 
 Write-Host "`nPronto." -ForegroundColor Green
-Write-Host "  Abrir o app     : app.bat  (ou o atalho 'Vagas - abrir app')"
+Write-Host "  Abrir o app     : app.bat  (ou o atalho 'vagas1000 - abrir app')"
 Write-Host "  Atualizar       : botao 'Atualizar base' dentro do app"
 Write-Host "  Painel          : out\dashboard.html"
 Write-Host "  Log             : logs\scraper.log"

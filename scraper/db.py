@@ -21,11 +21,12 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from . import paths
 from .models import Job
 
 log = logging.getLogger("scraper")
-ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DB = ROOT / "data" / "vagas.db"
+ROOT = paths.HOME
+DEFAULT_DB = paths.DATA / "vagas.db"
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;
@@ -167,10 +168,10 @@ if __name__ == "__main__":      # python -m scraper.db importar out/vagas-xxx.js
     import sys
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     if len(sys.argv) == 3 and sys.argv[1] == "importar":
-        comps = json.loads((ROOT / "config" / "companies.json").read_text(encoding="utf-8"))["companies"]
+        comps = json.loads(paths.config_file("companies.json").read_text(encoding="utf-8"))["companies"]
         print("run_id", import_json(connect(), sys.argv[2], comps))
     elif len(sys.argv) == 2 and sys.argv[1] == "reavaliar":
-        prof = json.loads((ROOT / "config" / "profile.json").read_text(encoding="utf-8"))
+        prof = json.loads(paths.config_file("profile.json").read_text(encoding="utf-8"))
         print(rescore_all(connect(), prof), "vagas reavaliadas")
     else:
         print("uso: python -m scraper.db importar out\\vagas-AAAAMMDD-HHMMSS.json | python -m scraper.db reavaliar")

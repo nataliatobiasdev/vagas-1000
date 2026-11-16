@@ -3,51 +3,69 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel de vagas</title>
+<title>vagas1000 · Painel de vagas</title>
 <style>
+/*__FONTS__*/
+/* Nevora Design System — tema escuro é a referência; o claro usa os mesmos tons, escurecidos para contraste AA. */
 :root{
-  color-scheme: light;
-  --surface:#fcfcfb; --surface-2:#f4f3f0; --border:#e2e0da; --grid:#ece9e3;
-  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#77756f;
-  --accent:#2a78d6; --accent-soft:#cde2fb;
-  --v-elig:#2a78d6; --v-maybe:#86b6ef; --v-block:#c9c7c0;
-  --bar:#2a78d6;
+  color-scheme: dark;
+  --surface:#0B0E19; --surface-2:#151A2B; --raised:#1C2238; --field:#0E121E;
+  --border:#2C3142; --grid:#1C2238;
+  --ink:#F4F6FF; --ink-2:#A6B1CB; --ink-3:#7D87A3;
+  --accent:#9D8CFF; --accent-fg:#0B0E19; --accent-soft:#2A2652; --teal:#42D6CD;
+  --ok:#45D6A0; --warn:#F5C66B; --danger:#FF718D;
+  --v-elig:#9D8CFF; --v-maybe:#2F7F86; --v-block:#2C3142;
+  --bar:#9D8CFF; --hl:rgba(255,255,255,.06); --shadow:rgba(0,0,0,.45);
+  --atmos:radial-gradient(1100px circle at 15% -5%,rgba(157,140,255,.045),transparent 65%),radial-gradient(900px circle at 85% 35%,rgba(66,214,205,.025),transparent 60%);
+  --font-body:"Inter Nevora","Inter","Segoe UI",system-ui,sans-serif;
+  --font-head:"Space Grotesk Nevora","Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono Nevora","JetBrains Mono",Consolas,monospace;
 }
-@media (prefers-color-scheme: dark){
-  :root:where(:not([data-theme="light"])){
-    color-scheme: dark;
-    --surface:#1a1a19; --surface-2:#232321; --border:#383835; --grid:#2d2d2b;
-    --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#9a998f;
-    --accent:#3987e5; --accent-soft:#0d366b;
-    --v-elig:#3987e5; --v-maybe:#184f95; --v-block:#4a4a46;
-    --bar:#3987e5;
+@media (prefers-color-scheme: light){
+  :root:where(:not([data-theme="dark"])){
+    color-scheme: light;
+    --surface:#F6F7FC; --surface-2:#FFFFFF; --raised:#EEF0F8; --field:#FAFBFF;
+    --border:#DDE1EE; --grid:#EEF0F8;
+    --ink:#0B0E19; --ink-2:#525C78; --ink-3:#6B7491;
+    --accent:#6C5CE7; --accent-fg:#FFFFFF; --accent-soft:#E6E2FD; --teal:#0D8A83;
+    --ok:#128058; --warn:#9C6008; --danger:#CD2D50;
+    --v-elig:#6C5CE7; --v-maybe:#0D8A83; --v-block:#C9CDDD;
+    --bar:#6C5CE7; --hl:rgba(255,255,255,.9); --shadow:rgba(11,14,25,.08); --atmos:none;
   }
 }
-:root[data-theme="dark"]{
-  color-scheme: dark;
-  --surface:#1a1a19; --surface-2:#232321; --border:#383835; --grid:#2d2d2b;
-  --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#9a998f;
-  --accent:#3987e5; --accent-soft:#0d366b;
-  --v-elig:#3987e5; --v-maybe:#184f95; --v-block:#4a4a46;
-  --bar:#3987e5;
+:root[data-theme="light"]{
+  color-scheme: light;
+  --surface:#F6F7FC; --surface-2:#FFFFFF; --raised:#EEF0F8; --field:#FAFBFF;
+  --border:#DDE1EE; --grid:#EEF0F8;
+  --ink:#0B0E19; --ink-2:#525C78; --ink-3:#6B7491;
+  --accent:#6C5CE7; --accent-fg:#FFFFFF; --accent-soft:#E6E2FD; --teal:#0D8A83;
+  --ok:#128058; --warn:#9C6008; --danger:#CD2D50;
+  --v-elig:#6C5CE7; --v-maybe:#0D8A83; --v-block:#C9CDDD;
+  --bar:#6C5CE7; --hl:rgba(255,255,255,.9); --shadow:rgba(11,14,25,.08); --atmos:none;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--surface);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{margin:0;background:var(--surface);color:var(--ink);font:14px/1.45 var(--font-body);-webkit-font-smoothing:antialiased}
+body{background-image:var(--atmos);background-attachment:fixed}
+h1,h2,.kpi b{font-family:var(--font-head)}
+:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:2px}
 .wrap{max-width:1280px;margin:0 auto;padding:20px 20px 60px}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-h1{font-size:20px;margin:0;font-weight:600}
+h1{font-size:22px;margin:0;font-weight:500;letter-spacing:-.01em}
+.brand{display:flex;align-items:center;gap:14px}
+.brand svg{flex:none}
 .sub{color:var(--ink-2);font-size:13px}
 button,select,input{font:inherit;color:var(--ink)}
-.btn{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer}
+.btn{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;box-shadow:inset 0 1px 0 var(--hl)}
 .btn:hover{border-color:var(--ink-3)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+.kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;box-shadow:inset 0 1px 0 var(--hl),0 2px 6px -1px var(--shadow)}
+.kpi span{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;font-size:11px}
 .kpi b{display:block;font-size:26px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
 .kpi span{color:var(--ink-2);font-size:12px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 @media(max-width:860px){.grid2{grid-template-columns:1fr}}
-.card{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px}
-.card h2{font-size:13px;font-weight:600;margin:0 0 10px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:inset 0 1px 0 var(--hl),0 2px 6px -1px var(--shadow)}
+.card h2{font-size:12px;font-weight:500;margin:0 0 10px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono)}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-bottom:8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 .barrow{display:grid;grid-template-columns:120px 1fr 34px;gap:8px;align-items:center;margin:6px 0;font-size:13px}
@@ -61,7 +79,7 @@ button,select,input{font:inherit;color:var(--ink)}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:12px}
 .chip.err{border-color:var(--ink-2)}
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 10px}
-.filters input[type=search],.filters select{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:6px 9px}
+.filters input[type=search],.filters select{background:var(--field);border:1px solid var(--border);border-radius:8px;padding:6px 9px}
 .filters input[type=search]{min-width:220px}
 .filters label{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2);font-size:13px}
 .techs{display:flex;gap:5px;flex-wrap:wrap;margin:2px 0 10px}
@@ -69,20 +87,20 @@ button,select,input{font:inherit;color:var(--ink)}
 .tg[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
 table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
-th{font-size:12px;color:var(--ink-2);font-weight:600;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface)}
+th{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;font-size:11px;color:var(--ink-2);font-weight:500;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface)}
 th[aria-sort=ascending]::after{content:" ▲"} th[aria-sort=descending]::after{content:" ▼"}
 tr.row{cursor:pointer} tr.row:hover td{background:var(--surface-2)}
 td.sc{white-space:nowrap;font-variant-numeric:tabular-nums;width:92px}
 .scbar{display:inline-block;height:8px;border-radius:0 4px 4px 0;background:var(--bar);vertical-align:middle;margin-right:6px}
 .badge{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:600;border:1px solid transparent;white-space:nowrap}
-.b-ELIGIBLE{background:var(--v-elig);color:#fff}
-.b-MAYBE{background:var(--surface);border-color:var(--v-elig);color:var(--ink)}
+.b-ELIGIBLE{background:var(--v-elig);color:var(--accent-fg)}
+.b-MAYBE{background:var(--surface);border-color:var(--v-maybe);color:var(--teal)}
 .b-BLOCKED{background:var(--surface);border-color:var(--border);color:var(--ink-3)}
 .new{background:var(--accent-soft);border:1px solid var(--accent);color:var(--ink);border-radius:6px;font-size:11px;padding:0 6px;margin-left:6px;font-weight:600}
 .closed{color:var(--ink-3);text-decoration:line-through}
 .detail td{background:var(--surface-2);padding:12px 14px}
 .detail .why{color:var(--ink-2);margin:0 0 8px}
-.detail pre{white-space:pre-wrap;font:inherit;color:var(--ink);margin:0;max-height:260px;overflow:auto}
+.detail pre{white-space:pre-wrap;font:12px/1.5 var(--font-mono);color:var(--ink);margin:0;max-height:260px;overflow:auto}
 a{color:var(--accent)}
 .muted{color:var(--ink-3)}
 .empty{padding:26px;text-align:center;color:var(--ink-2)}
@@ -94,8 +112,9 @@ details summary{cursor:pointer;color:var(--ink-2);font-size:13px;margin:16px 0 8
 <div class="wrap">
   <header>
     <div>
-      <h1>Painel de vagas</h1>
-      <div class="sub" id="sub"></div>
+      <div class="brand"><svg width="36" height="36" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="bb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9D8CFF"/><stop offset="1" stop-color="#42D6CD"/></linearGradient></defs><rect x=".5" y=".5" width="39" height="39" rx="10" fill="var(--surface-2)" stroke="var(--border)"/><circle cx="18" cy="17" r="9" fill="none" stroke="url(#bb)" stroke-width="3"/><path d="M25 24l7 7" stroke="#42D6CD" stroke-width="3" stroke-linecap="round"/></svg>
+      <div><h1>vagas1000</h1>
+      <div class="sub" id="sub"></div></div></div>
     </div>
     <button class="btn" id="theme" type="button">Tema: automático</button>
   </header>

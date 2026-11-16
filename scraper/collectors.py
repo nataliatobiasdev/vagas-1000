@@ -177,7 +177,7 @@ def _get_text(url: str, attempts: int = 2) -> str:
     last = None
     for i in range(attempts):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (vagas-scraper)"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (vagas1000)"})
             with urllib.request.urlopen(req, timeout=45) as resp:
                 return resp.read().decode("utf-8", "replace")
         except Exception as e:
@@ -221,7 +221,7 @@ def _post_json(url: str, body: dict, attempts: int = 3):
         try:
             req = urllib.request.Request(
                 url, data=json.dumps(body).encode(),
-                headers={"User-Agent": "Mozilla/5.0 (vagas-scraper)",
+                headers={"User-Agent": "Mozilla/5.0 (vagas1000)",
                          "Content-Type": "application/json", "Accept": "application/json"})
             with urllib.request.urlopen(req, timeout=45) as resp:
                 return json.loads(resp.read().decode("utf-8"))
@@ -279,7 +279,7 @@ def _get_json(url: str, attempts: int = 2):
     last = None
     for i in range(attempts):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (vagas-scraper)"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (vagas1000)"})
             with urllib.request.urlopen(req, timeout=45) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as e:

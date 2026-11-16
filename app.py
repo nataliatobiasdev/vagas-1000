@@ -1,10 +1,12 @@
-"""Janela do Vagas Scraper: botão de atualização + barra de status estilo player.
+"""vagas1000 — janela principal: botão de atualização + barra de status estilo player.
 
-Uso: app.bat (abre sem console) ou python app.py
+Uso: app.bat (abre sem console) ou python app.py. Instalado: vagas1000.exe.
 O status vem de out/status.json, gravado pelo runner a cada empresa.
+Visual: design system Nevora (tokens em scraper/theme.py).
 """
 from __future__ import annotations
 
+import ctypes
 import json
 import os
 import sqlite3
@@ -17,39 +19,36 @@ from datetime import datetime
 from pathlib import Path
 from tkinter import messagebox
 
-ROOT = Path(__file__).resolve().parent
-OUT = ROOT / "out"
+from scraper import paths
+from scraper.theme import (ACCENT, ACCENT_FG, BG, BORDER, DANGER, FIELD, FG, FONT_BODY, FONT_BODY_SB,
+                           FONT_HEAD, FONT_MONO, MUTED, MUTED_2, PANEL, SUBTLE, TEAL, gradient, tint)
+from scraper.version import __version__
+
+APP_NAME = "vagas1000"
+ROOT = paths.HOME
+BUNDLE = paths.BUNDLE
+OUT = paths.OUT
 STATUS = OUT / "status.json"
-DB = ROOT / "data" / "vagas.db"
-LI_DIR = ROOT / "linkedin-jobs"
+DB = paths.DATA / "vagas.db"
+LI_DIR = ROOT / "linkedin-jobs"                       # só existe no modo código-fonte
 LI_PY = LI_DIR / ".venv" / "Scripts" / "python.exe"
 LI_STATUS = LI_DIR / "out" / "status.json"
 LI_REPORT = LI_DIR / "out" / "linkedin-report.md"
 LI_LAST = LI_DIR / "out" / "last-run.json"
 LI_CDP = "http://127.0.0.1:9222/json/version"
+HAS_LINKEDIN = LI_PY.exists() and not paths.FROZEN
 
-BG = "#121212"
-SURFACE = "#181818"
-SURFACE2 = "#282828"
-GREEN = "#1DB954"
-GREEN_HI = "#1ED760"
-BLUE = "#0A66C2"
-TEXT = "#FFFFFF"
-MUTED = "#B3B3B3"
-ERR = "#F15E6C"
+TEXT = FG
+ERR = DANGER
 
-COMPANY = {"ciandt": "CI&T", "stone": "Stone", "zupinnovation": "Zup Innovation",
-           "c6bank": "C6 Bank", "wellhub": "Wellhub", "vtex": "VTEX", "nubank": "Nubank",
-           "quintoandar": "QuintoAndar", "jusbrasil": "Jusbrasil", "btgpactual": "BTG Pactual",
-           "inter": "Banco Inter", "xpinc": "XP Inc.", "ebanx": "EBANX", "sezzle": "Sezzle",
-           "clara": "Clara", "homeward": "Homeward", "engine": "Engine", "coderio": "Coderio",
-           "luxurypresence": "Luxury Presence", "bluelightconsulting": "Bluelight",
-           "infinity-constellation": "Infinity", "nortal": "Nortal", "inflect": "Inflect",
-           "ilia": "ília", "sicredi": "Sicredi", "pagseguro": "PagSeguro", "porto": "Porto Bank",
-           "stefanini": "Stefanini", "globalhitss": "Global Hitss", "softplan": "Softplan",
-           "invillia": "Invillia", "valtech": "Valtech", "monks": "Monks", "bydbrasil": "BYD Brasil",
-           "salesforce": "Salesforce", "rededor": "Rede D'Or", "assai": "Assaí", "renner": "Renner",
-           "prio": "PRIO", "piracanjuba": "Piracanjuba", "bauducco": "Bauducco"}
+
+def load_fonts() -> None:
+    """Registra Inter, Space Grotesk e JetBrains Mono só para este processo (Windows)."""
+    try:
+        for f in (BUNDLE / "assets" / "fonts").glob("*.ttf"):
+            ctypes.windll.gdi32.AddFontResourceExW(str(f), 0x10, 0)     # FR_PRIVATE
+    except Exception:
+        pass                                  # sem as fontes o Tk usa a fonte substituta
 
 
 def _parse(ts):
@@ -59,7 +58,76 @@ def _parse(ts):
         return None
 
 
-class VagasApp:
+class Btn(tk.Frame):
+    """Botão plano no estilo "Linear precision" do Nevora: borda de 1 px e estados hover/disabled."""
+
+    VARIANTS = {
+        "primary": dict(bg=ACCENT, hover=tint("#FFFFFF", 0.14, ACCENT), fg=ACCENT_FG, border=ACCENT,
+                        dis_bg=tint(ACCENT, 0.35, PANEL), dis_fg=tint(ACCENT_FG, 0.55, PANEL)),
+        "secondary": dict(bg=PANEL, hover=SUBTLE, fg=FG, border=BORDER, dis_bg=PANEL, dis_fg=MUTED_2),
+        "teal": dict(bg=PANEL, hover=SUBTLE, fg=TEAL, border=tint(TEAL, 0.45, PANEL),
+                     dis_bg=PANEL, dis_fg=MUTED_2),
+    }
+
+    def __init__(self, master, text, command, variant="secondary", font=None, padx=16, pady=8):
+        v = self.v = self.VARIANTS[variant]
+        super().__init__(master, bg=v["bg"], highlightthickness=1, highlightbackground=v["border"],
+                         highlightcolor=ACCENT, bd=0, cursor="hand2", takefocus=1)
+        self.command = command
+        self.enabled = True
+        self.label = tk.Label(self, text=text, bg=v["bg"], fg=v["fg"], font=font or FONT_BODY_SB(10),
+                              padx=padx, pady=pady, bd=0)
+        self.label.pack()
+        for w in (self, self.label):
+            w.bind("<Enter>", lambda e: self._paint(hover=True))
+            w.bind("<Leave>", lambda e: self._paint())
+            w.bind("<Button-1>", self._click)
+        self.bind("<Return>", self._click)
+        self.bind("<space>", self._click)
+
+    def _paint(self, hover=False):
+        v = self.v
+        if not self.enabled:
+            bg, fg = v["dis_bg"], v["dis_fg"]
+        else:
+            bg, fg = (v["hover"] if hover else v["bg"]), v["fg"]
+        tk.Frame.configure(self, bg=bg)
+        self.label.configure(bg=bg, fg=fg)
+
+    def _click(self, _e=None):
+        if self.enabled and self.command:
+            self.command()
+
+    def config(self, **kw):                   # compatível com o uso de tk.Button.config(state=, text=)
+        if "text" in kw:
+            self.label.configure(text=kw.pop("text"))
+        if "state" in kw:
+            self.enabled = kw.pop("state") != "disabled"
+            tk.Frame.configure(self, cursor="hand2" if self.enabled else "arrow")
+            self._paint()
+        if kw:
+            tk.Frame.configure(self, **kw)
+
+    configure = config
+
+
+class Badge(tk.Label):
+    """Pílula semântica (sucesso/erro/neutra): o tom vem do `fg` que o app pede."""
+
+    def __init__(self, master):
+        super().__init__(master, text="", bg=PANEL, fg=MUTED, font=FONT_MONO(9), padx=9, pady=2, bd=0)
+
+    def config(self, **kw):
+        text = kw.get("text", self.cget("text"))
+        color = kw.get("fg", self.cget("fg"))
+        if "text" in kw or "fg" in kw:
+            kw["bg"] = PANEL if not text else (SUBTLE if color == MUTED else tint(color, 0.16, PANEL))
+        tk.Label.configure(self, **kw)
+
+    configure = config
+
+
+class Vagas1000App:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.proc = None
@@ -73,109 +141,146 @@ class VagasApp:
         self.li_log = None
         self.li_finished = False
         self.mode = None             # "update" | "linkedin"
-        root.title("Vagas Scraper")
-        root.geometry("1040x640")
-        root.minsize(960, 600)
+        root.title(APP_NAME)
+        s = root.winfo_fpixels("1i") / 96                          # escala do Windows (100% = 1,0)
+        sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
+        w, h = min(int(1040 * s), sw - 60), min(int(640 * s), sh - 90)
+        x, y = max(0, (sw - w) // 2), max(0, (sh - h) // 3)
+        root.geometry(f"{w}x{h}+{x}+{y}")                          # centralizada, sem cair para fora da tela
+        root.minsize(min(int(960 * s), w), min(int(600 * s), h))
         root.configure(bg=BG)
+        try:
+            ico = BUNDLE / "assets" / "icon.ico"
+            if ico.exists():
+                root.iconbitmap(default=str(ico))
+        except Exception:
+            pass
         self._build()
         self._load_stats()
         self._restore_log()
         root.after(400, self._poll)
 
     # ------------------------------------------------------------------ UI
+    @staticmethod
+    def _card(parent):
+        return tk.Frame(parent, bg=PANEL, highlightthickness=1, highlightbackground=BORDER, bd=0)
+
     def _build(self):
         head = tk.Frame(self.root, bg=BG)
-        head.pack(fill="x", padx=26, pady=(22, 4))
-        tk.Label(head, text="Vagas Scraper", bg=BG, fg=TEXT,
-                 font=("Segoe UI Semibold", 22)).pack(anchor="w")
-        self.sub = tk.Label(head, text="base local", bg=BG, fg=MUTED, font=("Segoe UI", 10))
-        self.sub.pack(anchor="w", pady=(2, 0))
+        head.pack(fill="x", padx=28, pady=(24, 4))
+        self.mark = tk.Canvas(head, width=40, height=40, bg=BG, highlightthickness=0)
+        self.mark.pack(side="left", padx=(0, 14))
+        self._draw_mark()
+        titles = tk.Frame(head, bg=BG)
+        titles.pack(side="left")
+        tk.Label(titles, text=APP_NAME, bg=BG, fg=FG, font=FONT_HEAD(22)).pack(anchor="w")
+        self.sub = tk.Label(titles, text="base local", bg=BG, fg=MUTED, font=FONT_BODY(10))
+        self.sub.pack(anchor="w", pady=(1, 0))
+        tk.Label(head, text=f"v{__version__}", bg=SUBTLE, fg=MUTED, font=FONT_MONO(9),
+                 padx=9, pady=3).pack(side="right")
 
         stats = tk.Frame(self.root, bg=BG)
-        stats.pack(fill="x", padx=26, pady=(16, 10))
+        stats.pack(fill="x", padx=28, pady=(18, 10))
         self.cards = {}
         specs = (("open", "vagas abertas"), ("eligible", "elegíveis"), ("companies", "empresas"))
         for i, (key, label) in enumerate(specs):
-            card = tk.Frame(stats, bg=SURFACE)
-            card.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else 10, 0))
-            stats.grid_columnconfigure(i, weight=1)
-            num = tk.Label(card, text="—", bg=SURFACE, fg=TEXT, anchor="w",
-                           font=("Segoe UI Semibold", 24))
-            num.pack(anchor="w", padx=16, pady=(12, 0))
-            tk.Label(card, text=label, bg=SURFACE, fg=MUTED, anchor="w",
-                     font=("Segoe UI", 9)).pack(anchor="w", padx=16, pady=(0, 12))
+            card = self._card(stats)
+            card.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else 12, 0))
+            stats.grid_columnconfigure(i, weight=1, uniform="stat")
+            tk.Label(card, text=label.upper(), bg=PANEL, fg=MUTED, anchor="w",
+                     font=FONT_MONO(8)).pack(anchor="w", padx=16, pady=(12, 0))
+            num = tk.Label(card, text="—", bg=PANEL, fg=ACCENT if key == "eligible" else FG, anchor="w",
+                           font=FONT_HEAD(26))
+            num.pack(anchor="w", padx=16, pady=(0, 12))
             self.cards[key] = num
 
         actions = tk.Frame(self.root, bg=BG)
-        actions.pack(fill="x", padx=26, pady=(4, 10))
-        self.btn_run = tk.Button(actions, text="▶  Atualizar base", command=self.start_run,
-                                 bg=GREEN, fg="#000000", activebackground=GREEN_HI, activeforeground="#000000",
-                                 font=("Segoe UI Semibold", 13), bd=0, padx=20, pady=10,
-                                 cursor="hand2", disabledforeground="#0a3d1c")
+        actions.pack(fill="x", padx=28, pady=(6, 12))
+        self.btn_run = Btn(actions, "Atualizar base", self.start_run, "primary",
+                           font=FONT_BODY_SB(12), padx=22, pady=9)
         self.btn_run.pack(side="left")
-        self.btn_li = tk.Button(actions, text="Buscar no LinkedIn", command=self.start_linkedin,
-                                bg=BLUE, fg=TEXT, activebackground="#0A7BD6", activeforeground=TEXT,
-                                font=("Segoe UI Semibold", 12), bd=0, padx=16, pady=10,
-                                cursor="hand2", disabledforeground="#7aa9c9")
-        self.btn_li.pack(side="left", padx=(10, 0))
-        for label, cmd in (("Abrir painel", self.open_dashboard),
-                           ("Relatório LinkedIn", self.open_linkedin_report),
-                           ("Abrir presenciais", self.open_presenciais),
-                           ("Abrir pasta", self.open_folder)):
-            tk.Button(actions, text=label, command=cmd, bg=SURFACE2, fg=TEXT, bd=0, padx=14, pady=10,
-                      font=("Segoe UI", 10), activebackground="#3a3a3a", activeforeground=TEXT,
-                      cursor="hand2").pack(side="left", padx=(10, 0))
+        self.btn_li = Btn(actions, "Buscar no LinkedIn", self.start_linkedin, "teal", padx=16, pady=9)
+        if HAS_LINKEDIN:                       # o app instalado não inclui o módulo do LinkedIn
+            self.btn_li.pack(side="left", padx=(10, 0))
+        extras = [("Abrir painel", self.open_dashboard), ("Abrir presenciais", self.open_presenciais),
+                  ("Abrir pasta", self.open_folder)]
+        if HAS_LINKEDIN:
+            extras.insert(1, ("Relatório LinkedIn", self.open_linkedin_report))
+        for label, cmd in extras:
+            Btn(actions, label, cmd, "secondary", padx=14, pady=9).pack(side="left", padx=(10, 0))
 
-        self.log = tk.Text(self.root, bg=SURFACE, fg=MUTED, bd=0, height=8, wrap="none",
-                           font=("Consolas", 9), state="disabled", padx=10, pady=8)
-        self.log.pack(fill="both", expand=True, padx=26, pady=(0, 12))
+        logbox = tk.Frame(self.root, bg=FIELD, highlightthickness=1, highlightbackground=BORDER)
+        logbox.pack(fill="both", expand=True, padx=28, pady=(0, 14))
+        self.log = tk.Text(logbox, bg=FIELD, fg=MUTED, bd=0, height=8, wrap="none", font=FONT_MONO(9),
+                           state="disabled", padx=12, pady=10, insertbackground=ACCENT,
+                           selectbackground=tint(ACCENT, 0.3, FIELD), highlightthickness=0)
+        self.log.pack(fill="both", expand=True)
 
         # ------------------------------------------------- barra estilo player
-        self.bar = tk.Frame(self.root, bg=SURFACE, height=104)
+        self.bar = tk.Frame(self.root, bg=PANEL, height=108, highlightthickness=1, highlightbackground=BORDER)
         self.bar.pack(fill="x", side="bottom")
         self.bar.pack_propagate(False)
-        self.progress = tk.Canvas(self.bar, bg=SURFACE, height=4, highlightthickness=0, bd=0)
+        self.progress = tk.Canvas(self.bar, bg=PANEL, height=4, highlightthickness=0, bd=0)
         self.progress.pack(fill="x", side="top")
         self._frac = 0.0
         self.progress.bind("<Configure>", lambda e: self._draw_progress())
 
-        body = tk.Frame(self.bar, bg=SURFACE)
-        body.pack(fill="both", expand=True, padx=18, pady=(10, 8))
+        body = tk.Frame(self.bar, bg=PANEL)
+        body.pack(fill="both", expand=True, padx=20, pady=(12, 8))
 
-        self.cover = tk.Canvas(body, width=58, height=58, bg=SURFACE, highlightthickness=0)
+        self.cover = tk.Canvas(body, width=58, height=58, bg=PANEL, highlightthickness=0)
         self.cover.pack(side="left")
         self._draw_cover("—")
 
-        mid = tk.Frame(body, bg=SURFACE)
+        mid = tk.Frame(body, bg=PANEL)
         mid.pack(side="left", fill="both", expand=True, padx=(14, 10))
-        self.now = tk.Label(mid, text="Pronto", bg=SURFACE, fg=TEXT, anchor="w",
-                            font=("Segoe UI Semibold", 12))
+        self.now = tk.Label(mid, text="Pronto", bg=PANEL, fg=FG, anchor="w", font=FONT_HEAD(14))
         self.now.pack(anchor="w")
-        self.detail = tk.Label(mid, text="clique em Atualizar base", bg=SURFACE, fg=MUTED, anchor="w",
-                               font=("Segoe UI", 9))
-        self.detail.pack(anchor="w", pady=(1, 0))
+        self.detail = tk.Label(mid, text="clique em Atualizar base", bg=PANEL, fg=MUTED, anchor="w",
+                               font=FONT_BODY(9))
+        self.detail.pack(anchor="w", pady=(2, 0))
 
-        right = tk.Frame(body, bg=SURFACE)
+        right = tk.Frame(body, bg=PANEL)
         right.pack(side="right")
-        self.time = tk.Label(right, text="", bg=SURFACE, fg=MUTED, font=("Consolas", 10))
+        self.time = tk.Label(right, text="", bg=PANEL, fg=MUTED, font=FONT_MONO(11))
         self.time.pack(anchor="e")
-        self.badge = tk.Label(right, text="", bg=SURFACE, fg=MUTED, font=("Segoe UI", 9))
-        self.badge.pack(anchor="e", pady=(2, 0))
+        self.badge = Badge(right)
+        self.badge.pack(anchor="e", pady=(4, 0))
+
+    @staticmethod
+    def _round_rect(c, x1, y1, x2, y2, r, **kw):
+        pts = [x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
+               x1, y2, x1, y2 - r, x1, y1 + r, x1, y1]
+        return c.create_polygon(pts, smooth=True, **kw)
+
+    def _draw_mark(self):
+        """Marca do app: lupa violeta→teal sobre um quadrado arredondado (mesma arte do ícone)."""
+        c = self.mark
+        c.delete("all")
+        self._round_rect(c, 1, 1, 39, 39, 10, fill=PANEL, outline=BORDER)
+        cols = gradient(ACCENT, TEAL, 8)
+        for i, col in enumerate(cols):
+            c.create_arc(9, 8, 27, 26, start=i * 45, extent=46, style="arc", outline=col, width=3)
+        c.create_line(24, 24, 32, 32, fill=TEAL, width=3, capstyle="round")
 
     def _draw_cover(self, letter: str):
         c = self.cover
         c.delete("all")
-        c.create_rectangle(2, 2, 56, 56, fill=SURFACE2, outline="")
-        c.create_text(29, 29, text=letter[:1].upper() or "V", fill=GREEN,
-                      font=("Segoe UI Semibold", 22))
+        self._round_rect(c, 2, 2, 56, 56, 12, fill=SUBTLE, outline=BORDER)
+        c.create_text(29, 29, text=(letter[:1].upper() or "B"), fill=ACCENT, font=FONT_HEAD(22))
 
     def _draw_progress(self):
         c = self.progress
         c.delete("all")
         w = c.winfo_width()
-        c.create_rectangle(0, 0, w, 4, fill=SURFACE2, outline="")
+        c.create_rectangle(0, 0, w, 4, fill=SUBTLE, outline="")
         if self._frac > 0:
-            c.create_rectangle(0, 0, max(2, int(w * min(self._frac, 1.0))), 4, fill=GREEN, outline="")
+            end = max(2, int(w * min(self._frac, 1.0)))
+            steps = 24                  # gradiente violeta→teal só no preenchimento (detalhe de marca)
+            for i, col in enumerate(gradient(ACCENT, TEAL, steps)):
+                x1, x2 = int(end * i / steps), int(end * (i + 1) / steps)
+                if x2 > x1:
+                    c.create_rectangle(x1, 0, x2, 4, fill=col, outline="")
 
     # ------------------------------------------------------------------ dados
     def _load_stats(self):
@@ -213,16 +318,16 @@ class VagasApp:
         self._last_results = 0
         self._last_errors = 0
         self.run_started = time.time()
-        logs = ROOT / "logs"
-        logs.mkdir(exist_ok=True)
+        logs = paths.LOGS
+        logs.mkdir(parents=True, exist_ok=True)
         self.log_file = open(logs / "app-run.log", "a", encoding="utf-8")
         self.log_file.write(f"\n=== {datetime.now():%d/%m/%Y %H:%M:%S} atualização pelo app ===\n")
         self.log_file.flush()
         self._append_log("Atualização iniciada…")
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-        self.proc = subprocess.Popen([sys.executable, str(ROOT / "main.py"), "--no-open"],
-                                     cwd=str(ROOT), stdout=self.log_file,
-                                     stderr=subprocess.STDOUT, creationflags=flags)
+        cmd = [sys.executable] if paths.FROZEN else [sys.executable, str(Path(__file__).resolve())]
+        self.proc = subprocess.Popen(cmd + ["--scrape", "--no-open"], cwd=str(ROOT),
+                                     stdout=self.log_file, stderr=subprocess.STDOUT, creationflags=flags)
 
     # ------------------------------------------------------------- LinkedIn
     def start_linkedin(self):
@@ -260,8 +365,8 @@ class VagasApp:
         self.btn_run.config(state="disabled")
         self.btn_li.config(state="disabled", text="LinkedIn rodando…")
         self._append_log("LinkedIn: modo seguro — 2 páginas, últimas 24h, sem abrir detalhe.")
-        logs = ROOT / "logs"
-        logs.mkdir(exist_ok=True)
+        logs = paths.LOGS
+        logs.mkdir(parents=True, exist_ok=True)
         self.li_log = open(logs / "linkedin-app.log", "a", encoding="utf-8")
         args = [str(LI_PY), "linkedin_jobs.py", "--pages", "2", "--max-jobs", "50",
                 "--details", "0", "--tpr", "r86400", "--top", "30"]
@@ -403,7 +508,7 @@ class VagasApp:
             self._append_log("Relatório de presenciais ainda não existe.")
 
     def open_folder(self):
-        os.startfile(ROOT)  # noqa: S606
+        os.startfile(paths.HOME)  # noqa: S606
 
     # ------------------------------------------------------------------ loop
     def _poll(self):
@@ -478,7 +583,7 @@ class VagasApp:
         if self.log_file:
             self.log_file.close()
             self.log_file = None
-        self.btn_run.config(state="normal", text="▶  Atualizar base")
+        self.btn_run.config(state="normal", text="Atualizar base")
         self.btn_li.config(state="normal")
         self.proc = None
         st = st or {}
@@ -508,6 +613,7 @@ class VagasApp:
             mark = "ok " if r.get("ok") else "ERRO"
             self._append_log(f"[{mark}] {r.get('name')}: {r.get('count', 0)} vagas em {r.get('seconds')}s")
         self._last_results = len(results)
+        errors = st.get("errors") or []
         for e in errors[self._last_errors:]:
             self._append_log(f"      ERRO {e.get('name')}: {str(e.get('error'))[:120]}")
         self._last_errors = len(errors)
@@ -549,12 +655,18 @@ class VagasApp:
 
 
 def main():
-    root = tk.Tk()
+    if "--scrape" in sys.argv:          # modo captura: o app instalado chama a si mesmo (sem Python separado)
+        sys.argv.remove("--scrape")
+        import main as cli
+        cli.main(sys.argv[1:])
+        return
+    load_fonts()
     try:
-        root.tk.call("tk", "scaling", 1.25)
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)             # texto nítido e tamanhos reais em telas com escala
     except Exception:
         pass
-    VagasApp(root)
+    root = tk.Tk()
+    Vagas1000App(root)
     root.mainloop()
 
 

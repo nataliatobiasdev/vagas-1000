@@ -1,6 +1,7 @@
 # ambiente e caches
 .venv/
 linkedin-jobs/.venv/
+linkedin-jobs/.profile/
 .dsh-pyenv/
 .tmp/
 __pycache__/
@@ -18,3 +19,16 @@ linkedin-jobs/out/
 # sistema
 Thumbs.db
 desktop.ini
+.chrome-profile/
+.chrome-tmp/
+
+# empacotamento
+dist/
+build/
+*.spec.bak
+installer/version_info.txt
+
+# documentacao
+docs/node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/

@@ -7,14 +7,15 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from . import dashboard, db, reports
+from . import dashboard, db, paths, reports
 from .collectors import COLLECTORS
 from .driver import quit_driver, session_alive
 from .filtering import score_job
 from .models import Job
 
 log = logging.getLogger("scraper")
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = paths.HOME
+NEEDS_BROWSER = {"stone_portal", "lever", "greenhouse"}   # adaptadores que dependem do Chrome
 
 CSV_FIELDS = ["company_name", "title", "verdict", "score", "location", "workplace_type", "area",
               "techs", "url", "source", "captured_at", "reasons"]
@@ -33,7 +34,7 @@ def collect_one(collector, driver, cfg: dict, driver_factory=None, retries: int 
         try:
             return collector(driver, cfg), driver, None
         except Exception as e:
-            if attempt >= retries or driver_factory is None or session_alive(driver):
+            if driver is None or attempt >= retries or driver_factory is None or session_alive(driver):
                 return None, driver, e     # erro da empresa (não da sessão): não insiste
             attempt += 1
             log.warning("[%s] sessão do navegador caiu (%s); recriando o Chrome — tentativa %d/%d",
@@ -55,9 +56,9 @@ def write_status(out_dir: Path, **data) -> None:
 
 def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
         driver_factory=None) -> list[Job]:
-    cfg = load_json(ROOT / "config" / "companies.json")["companies"]
-    profile = load_json(ROOT / "config" / "profile.json")
-    out_dir = out_dir or ROOT / "out"
+    cfg = load_json(paths.config_file("companies.json"))["companies"]
+    profile = load_json(paths.config_file("profile.json"))
+    out_dir = out_dir or paths.OUT
     out_dir.mkdir(parents=True, exist_ok=True)
 
     selected = [c for c in cfg if not only or c["company_id"] in only]
@@ -73,7 +74,15 @@ def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
             progress["current"] = {"company_id": c["company_id"], "name": c["name"]}
             write_status(out_dir, **progress)
             t0 = time.perf_counter()
-            got, drv, err = collect_one(COLLECTORS[c["adapter"]], drivers[-1], c, driver_factory)
+            if c["adapter"] in NEEDS_BROWSER and drivers[-1] is None and driver_factory is not None:
+                try:                       # Chrome sob demanda: só abre se alguma empresa precisar dele
+                    drivers.append(driver_factory())
+                except Exception as e:
+                    log.error("[%s] não consegui abrir o Chrome: %s", c["company_id"], e)
+            if c["adapter"] in NEEDS_BROWSER and drivers[-1] is None:
+                got, drv, err = None, drivers[-1], RuntimeError("Chrome indisponível (instale o Google Chrome)")
+            else:
+                got, drv, err = collect_one(COLLECTORS[c["adapter"]], drivers[-1], c, driver_factory)
             elapsed = time.perf_counter() - t0
             if drv is not drivers[-1]:
                 drivers.append(drv)
@@ -128,7 +137,8 @@ def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
         raise
     finally:
         for extra in drivers[1:]:
-            quit_driver(extra)
+            if extra is not None:
+                quit_driver(extra)
 
 
 def cleanup_outputs(out_dir: Path, keep: int = 60) -> None:
