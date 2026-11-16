@@ -24,13 +24,18 @@ jobs:
       - name: Empacotar (PyInstaller)
         run: pyinstaller vagas1000.spec --noconfirm
       - name: Teste de fumaça do executável empacotado
-        shell: bash
+        shell: pwsh
         env:
-          VAGAS1000_HOME: ${{ runner.temp }}/bb-home
+          VAGAS1000_HOME: ${{ runner.temp }}\v1000-home
         run: |
-          dist/vagas1000/vagas1000.exe --scrape --painel --no-open
-          test -s "$VAGAS1000_HOME/out/dashboard.html"
-          test -s "$VAGAS1000_HOME/config/companies.json"
+          # o .exe é um app gráfico: o shell não espera por ele, então Start-Process -Wait
+          $p = Start-Process -FilePath "dist\vagas1000\vagas1000.exe" -ArgumentList "--scrape","--painel","--no-open" -Wait -PassThru
+          Write-Host "código de saída: $($p.ExitCode)"
+          $log = Join-Path $env:VAGAS1000_HOME "logs\scraper.log"
+          if (Test-Path $log) { Get-Content $log -Tail 30 }
+          foreach ($f in "out\dashboard.html", "config\companies.json", "config\profile.json") {
+            if (-not (Test-Path (Join-Path $env:VAGAS1000_HOME $f))) { throw "faltou $f" }
+          }
       - name: Instalador Windows (NSIS, por usuário)
         shell: bash
         run: |
