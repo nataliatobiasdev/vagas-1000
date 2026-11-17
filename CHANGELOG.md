@@ -4,6 +4,11 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.3.2] - 2026-11-17
+
+### Corrigido
+- **Queda de um serviço de vagas custa menos**: durante a queda da Lever (17/11) a API respondia erro 500/502/504 em ~15 s em vez de estourar o tempo, e o disjuntor só olhava timeout, então cada empresa dela seguia gastando duas tentativas. Agora erro 5xx também conta como "serviço fora do ar": depois de duas falhas seguidas as demais empresas do mesmo serviço são puladas na hora, com a mensagem do erro recebido, e as vagas já guardadas continuam. Erros 4xx (como o 429 do Workday) não contam. Num teste real, as 4 empresas da Lever passaram de dois minutos para ~15 s.
+
 ## [1.3.1] - 2026-11-17
 
 Correções dos erros da busca de vagas, painel que se atualiza sozinho e janela só com as abas Início e Painel de vagas.
