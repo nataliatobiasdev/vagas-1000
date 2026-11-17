@@ -4,12 +4,17 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.2.0] - 2026-11-16
+
+O painel passa a viver **dentro da janela do app**, ganha a aba do LinkedIn e fica mais compacto.
+
 ### Adicionado
 - **Painel dentro da janela principal**: a janela ganha as abas **Início**, **Painel de vagas** e **LinkedIn**; o painel aparece nela (WebView2 como janela filha, do tamanho da área de conteúdo) em vez de abrir outra janela. Sem WebView2, abre no navegador, como antes.
 - **Aba “LinkedIn · captura manual”** no painel: reúne as vagas importadas da captura manual, com as colunas da planilha (aderência, local, modelo, publicada, candidaturas, senioridade, requisitos, observações), busca, filtro por aderência e modelo, ordenação e link para o anúncio.
 
 ### Alterado
 - Os painéis **Fontes**, **Por empresa** e **Tecnologias** ficam recolhidos em uma linha só, lado a lado; ao expandir, ocupam a largura inteira, com listas mais baixas.
+- O CI ganhou um autoteste do painel embutido (janela filha com o tamanho e o conteúdo certos, troca de aba, fecha com a janela principal) e passa a rodar também em branches `ci/**`.
 
 ## [1.1.0] - 2026-11-16
 
@@ -57,5 +62,6 @@ Primeira versão publicada em `nataliatobiasdev/vagas-1000`.
 ### Removido
 - Dicionário de empresas sem uso em `app.py` e scripts de instalação obsoletos (`setup.bat`, `setup.ps1`, `publicar-github.ps1`).
 
+[1.2.0]: https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.2.0
 [1.1.0]: https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.0.0
