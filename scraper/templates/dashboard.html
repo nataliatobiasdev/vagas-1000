@@ -79,20 +79,21 @@ h1{font-size:22px;margin:0;font-weight:500;letter-spacing:-.01em}
 .kpi span{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;font-size:11px;color:var(--ink-2)}
 
 /* ---------- painéis recolhíveis ---------- */
-.panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;align-items:start}
-.panels .wide{grid-column:1/-1}
-@media(max-width:900px){.panels{grid-template-columns:1fr}}
-.panel{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:inset 0 1px 0 var(--hl),0 2px 8px -2px var(--shadow);overflow:hidden}
-.panel-h{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;cursor:pointer}
+/* Recolhidos, os três painéis são uma linha só (título + resumo) lado a lado; aberto, o painel ocupa a linha inteira. */
+.panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px;align-items:start}
+.panel[data-open="true"]{grid-column:1/-1}
+@media(max-width:1000px){.panels{grid-template-columns:1fr}}
+.panel{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:inset 0 1px 0 var(--hl),0 1px 4px -1px var(--shadow);overflow:hidden}
+.panel-h{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;cursor:pointer;min-height:42px}
 .panel-h:hover{background:color-mix(in srgb,var(--raised) 55%,transparent)}
-.panel-h h2{font-size:12px;font-weight:500;margin:0;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);white-space:nowrap}
-.panel-h .sum{margin-left:auto;color:var(--ink-2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.panel-h .chev{transition:transform .2s;color:var(--ink-3)}
+.panel-h h2{font-size:11.5px;font-weight:500;margin:0;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);white-space:nowrap}
+.panel-h .sum{margin-left:auto;color:var(--ink-2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.panel-h .mini{display:flex;width:54px;height:6px;border-radius:999px;overflow:hidden;gap:1px;flex:none;background:var(--field)}
+.panel-h .chev{transition:transform .2s;color:var(--ink-3);flex:none}
 .panel[data-open="true"] .chev{transform:rotate(180deg)}
-.panel-b{padding:0 16px 14px}
-.peek{display:flex;flex-direction:column;gap:7px}
+.panel-b{padding:2px 14px 14px}
 .full{display:flex;flex-direction:column;gap:10px}
-.scroll{max-height:min(46vh,360px);overflow:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent) 35%,transparent) transparent}
+.scroll{max-height:min(38vh,300px);overflow:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent) 35%,transparent) transparent}
 .scroll::-webkit-scrollbar{width:8px} .scroll::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--accent) 30%,transparent);border-radius:9px;border:2px solid transparent;background-clip:padding-box}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .tools input[type=search]{flex:1;min-width:160px}
@@ -122,6 +123,18 @@ h1{font-size:22px;margin:0;font-weight:500;letter-spacing:-.01em}
 .pill{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--border);background:var(--field);border-radius:999px;padding:3px 11px;font-size:12.5px;cursor:default}
 .pill b{font-family:var(--font-mono);font-weight:500;color:var(--ink-2);font-size:12px}
 button.pill{cursor:pointer} button.pill:hover{border-color:var(--ink-3)}
+
+/* ---------- abas (Vagas | LinkedIn) ---------- */
+.tabs{display:flex;gap:4px;margin:0 0 16px;border-bottom:1px solid var(--border)}
+.tabs button{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 14px;color:var(--ink-2);font-weight:500;display:inline-flex;align-items:center;gap:8px;border-bottom:2px solid transparent;margin-bottom:-1px;border-radius:8px 8px 0 0}
+.tabs button:hover{color:var(--ink);background:color-mix(in srgb,var(--raised) 55%,transparent)}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs .n{font-family:var(--font-mono);font-size:11.5px;background:var(--field);border:1px solid var(--border);border-radius:999px;padding:0 8px;color:var(--ink-2)}
+:root[data-embed="1"] .tabs{display:none}                 /* dentro do app, as abas ficam na janela principal */
+.li-note{color:var(--ink-2);font-size:13px;margin:0 0 12px}
+.li-table td.obs{min-width:200px;color:var(--ink-2);font-size:13px} .li-table td.stack{min-width:260px;max-width:380px;color:var(--ink-2);font-size:12.5px}
+.li-table td.ttl{min-width:220px} .li-table td.ttl b{font-weight:600} .li-table td.ttl div{color:var(--ink-3);font-size:12.5px}
+.li-table td{font-size:13.5px}
 
 /* ---------- filtros ---------- */
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 10px}
@@ -222,13 +235,18 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
     <button class="btn" id="theme" type="button">Tema: automático</button>
   </header>
 
+  <nav class="tabs" role="tablist" aria-label="Seções do painel">
+    <button type="button" role="tab" id="tabBtnAll" data-tab="all" aria-selected="true">Vagas <span class="n" id="nAll"></span></button>
+    <button type="button" role="tab" id="tabBtnLi" data-tab="li" aria-selected="false">LinkedIn · captura manual <span class="n" id="nLi"></span></button>
+  </nav>
+
+  <div id="tabAll">
   <section class="kpis" id="kpis"></section>
 
   <section class="panels">
-    <div class="panel wide" id="pSources" data-open="false">
-      <button class="panel-h" type="button" aria-expanded="false"><h2>Fontes na última execução</h2><span class="sum" id="sumSources"></span><svg class="i chev"><use href="#i-chev"/></svg></button>
+    <div class="panel" id="pSources" data-open="false">
+      <button class="panel-h" type="button" aria-expanded="false"><h2>Fontes</h2><span class="sum" id="sumSources"></span><svg class="i chev"><use href="#i-chev"/></svg></button>
       <div class="panel-b">
-        <div class="peek" id="peekSources"></div>
         <div class="full" id="fullSources" hidden>
           <div class="tools"><input type="search" id="srcQ" placeholder="Filtrar empresa…" aria-label="Filtrar fontes">
             <div class="seg" id="srcF"><button type="button" data-f="all" aria-pressed="true">Todas</button><button type="button" data-f="err" aria-pressed="false">Com erro</button><button type="button" data-f="zero" aria-pressed="false">Sem vagas</button></div></div>
@@ -237,9 +255,8 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
       </div>
     </div>
     <div class="panel" id="pCompany" data-open="false">
-      <button class="panel-h" type="button" aria-expanded="false"><h2>Vagas por empresa e veredito</h2><span class="sum" id="sumCompany"></span><svg class="i chev"><use href="#i-chev"/></svg></button>
+      <button class="panel-h" type="button" aria-expanded="false"><h2>Por empresa</h2><span class="mini" id="miniCompany"></span><span class="sum" id="sumCompany"></span><svg class="i chev"><use href="#i-chev"/></svg></button>
       <div class="panel-b">
-        <div class="peek" id="peekCompany"></div>
         <div class="full" id="fullCompany" hidden>
           <div class="tools"><input type="search" id="coQ" placeholder="Filtrar empresa…" aria-label="Filtrar empresas">
             <div class="seg" id="coSort"><button type="button" data-s="total" aria-pressed="true">Total</button><button type="button" data-s="elig" aria-pressed="false">Elegíveis</button><button type="button" data-s="name" aria-pressed="false">A–Z</button></div></div>
@@ -249,9 +266,8 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
       </div>
     </div>
     <div class="panel" id="pTech" data-open="false">
-      <button class="panel-h" type="button" aria-expanded="false"><h2>Tecnologias nas vagas elegíveis</h2><span class="sum" id="sumTech"></span><svg class="i chev"><use href="#i-chev"/></svg></button>
+      <button class="panel-h" type="button" aria-expanded="false"><h2>Tecnologias</h2><span class="sum" id="sumTech"></span><svg class="i chev"><use href="#i-chev"/></svg></button>
       <div class="panel-b">
-        <div class="peek" id="peekTech"></div>
         <div class="full" id="fullTech" hidden>
           <div class="legend"><span>Clique numa tecnologia para filtrar a lista de vagas.</span></div>
           <div class="scroll" id="techList"></div>
@@ -285,6 +301,21 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
   <details class="hist"><summary>Histórico de execuções</summary>
     <div class="tablewrap"><table><thead><tr><th>#</th><th>Quando</th><th>Vagas</th><th>Elegíveis</th><th>Novas</th><th>Encerradas</th></tr></thead><tbody id="runs"></tbody></table></div>
   </details>
+  </div>
+
+  <!-- ===================================================== aba LinkedIn (captura manual) -->
+  <div id="tabLi" hidden>
+    <p class="li-note" id="liNote"></p>
+    <div class="filters">
+      <input type="search" id="liQ" placeholder="Buscar vaga, empresa, local, stack…" aria-label="Buscar no LinkedIn">
+      <div class="seg" id="liFit" aria-label="Aderência"></div>
+      <select id="liWork" aria-label="Modelo"><option value="">Qualquer modelo</option><option value="remote">Remoto</option><option value="hybrid">Híbrido</option><option value="onsite">Presencial</option></select>
+      <select id="liSort" aria-label="Ordenar"><option value="fit">Aderência</option><option value="score">Maior nota</option><option value="company">Empresa</option><option value="applicants">Menos candidaturas</option></select>
+      <span class="sub" id="liCount"></span>
+    </div>
+    <div id="liOut"></div>
+    <div class="empty" id="liEmpty" hidden></div>
+  </div>
 </main>
 
 <!-- ===================================================== página da vaga -->
@@ -315,6 +346,7 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
 
 <!--__RECORDS__-->
 <script>
+if (/[?&]embed=1/.test(location.search)) document.documentElement.dataset.embed = "1";
 const DATA = /*__DATA__*/null;
 const TECH = {SALESFORCE:"Salesforce",AWS:"AWS",GO:"Go",PYTHON:"Python",TYPESCRIPT_NODE:"TypeScript/Node",ANGULAR_REACT:"Angular/React",GRAPHQL:"GraphQL",AI_GENAI:"IA/GenAI",INTEGRATION_ARCH:"Integração",JAVA:"Java",DOTNET:".NET"};
 const VERD = {ELIGIBLE:"Elegível",MAYBE:"Talvez",BLOCKED:"Bloqueada"};
@@ -356,7 +388,7 @@ $("#kpis").innerHTML = kpi(open.length,"vagas abertas") + kpi(elig,"elegíveis")
 /* ---------- painéis recolhíveis ---------- */
 function setPanel(id, openIt){
   const p = $("#"+id); p.dataset.open = openIt; p.querySelector(".panel-h").setAttribute("aria-expanded", openIt);
-  p.querySelector(".peek").hidden = openIt; p.querySelector(".full").hidden = !openIt; store.set("panel."+id, openIt);
+  p.querySelector(".full").hidden = !openIt; store.set("panel."+id, openIt);
 }
 document.querySelectorAll(".panel").forEach(p => {
   p.querySelector(".panel-h").onclick = () => setPanel(p.id, p.dataset.open !== "true");
@@ -371,9 +403,7 @@ const stat = (dot, txt) => `<span class="stat"><i style="background:${dot}"></i>
   const nCo = cs.filter(c => !c.imported).length;
   const ok = cs.filter(c => c.ok === true && c.count > 0), zero = cs.filter(c => c.ok === true && !c.count),
         err = cs.filter(c => c.ok === false), nodata = cs.filter(c => c.ok === null);
-  $("#sumSources").textContent = `${nCo} empresas${cs.length>nCo?" + importadas":""} · ${ok.length} com vagas` + (err.length ? ` · ${err.length} com erro` : "");
-  $("#peekSources").innerHTML = `<div class="stats">${stat("var(--ok)",`${ok.length} com vagas`)}${zero.length?stat("var(--v-block)",`${zero.length} sem vagas`):""}${err.length?stat("var(--danger)",`${err.length} com erro`):""}${nodata.length?stat("var(--ink-3)",`${nodata.length} sem dados`):""}</div>
-    <div class="strip">${cs.map(c => `<i class="${c.ok===false?"err":(c.ok&&!c.count)||c.ok===null?"zero":""}" data-t="${esc(c.name)}: ${c.ok===false?"ERRO "+esc(c.error||""):c.ok===null?"sem dados":c.count+" vagas"}"></i>`).join("")}</div>`;
+  $("#sumSources").textContent = `${nCo} empresas · ${ok.length} com vagas` + (err.length ? ` · ${err.length} com erro` : "");
   let f = "all";
   const draw = () => { const q = $("#srcQ").value.trim().toLowerCase();
     $("#srcGrid").innerHTML = cs.filter(c => (f==="all" || (f==="err"&&c.ok===false) || (f==="zero"&&c.ok===true&&!c.count)) && (!q || c.name.toLowerCase().includes(q)))
@@ -393,10 +423,8 @@ const rowC = (c, v, max) => `<div class="barrow click" data-co="${esc(c)}"><span
   const all = Object.entries(byC), tot = all.reduce((a,[,v]) => a + sum(v), 0), maxAll = Math.max(1, ...all.map(([,v]) => sum(v)));
   const dist = {ELIGIBLE:0,MAYBE:0,BLOCKED:0}; all.forEach(([,v]) => { for(const k in dist) dist[k] += v[k]; });
   $("#sumCompany").textContent = `${all.length} empresas · ${tot.toLocaleString("pt-BR")} vagas`;
-  const top = [...all].sort((a,b) => sum(b[1]) - sum(a[1])).slice(0,4);
-  $("#peekCompany").innerHTML = `<div class="dist">${["ELIGIBLE","MAYBE","BLOCKED"].map(k => `<div class="seg1" data-t="${VERD[k]}: ${dist[k]}" style="width:${dist[k]/(tot||1)*100}%;background:${col[k]}"></div>`).join("")}</div>
-    <div class="stats">${stat(col.ELIGIBLE,`${dist.ELIGIBLE} elegíveis`)}${stat(col.MAYBE,`${dist.MAYBE} talvez`)}${stat(col.BLOCKED,`${dist.BLOCKED} bloqueadas`)}</div>` +
-    top.map(([c,v]) => rowC(c, v, maxAll)).join("");
+  $("#miniCompany").innerHTML = ["ELIGIBLE","MAYBE","BLOCKED"].map(k => `<i style="width:${dist[k]/(tot||1)*100}%;background:${col[k]}"></i>`).join("");
+  $("#miniCompany").title = `${dist.ELIGIBLE} elegíveis · ${dist.MAYBE} talvez · ${dist.BLOCKED} bloqueadas`;
   let s = "total";
   const draw = () => { const q = $("#coQ").value.trim().toLowerCase();
     const rows = all.filter(([c]) => !q || c.toLowerCase().includes(q)).sort((a,b) => s==="name" ? a[0].localeCompare(b[0],"pt-BR") : s==="elig" ? b[1].ELIGIBLE - a[1].ELIGIBLE || sum(b[1]) - sum(a[1]) : sum(b[1]) - sum(a[1]));
@@ -413,9 +441,7 @@ document.addEventListener("click", e => { const r = e.target.closest("[data-co]"
   const cnt = {}, cntAll = {};
   open.forEach(j => j.techs.forEach(t => { cntAll[t] = (cntAll[t]||0)+1; if (j.verdict==="ELIGIBLE") cnt[t] = (cnt[t]||0)+1; }));
   const rows = Object.entries(cnt).sort((a,b) => b[1]-a[1]), max = rows.length ? rows[0][1] : 1;
-  $("#sumTech").textContent = `${rows.length} tecnologias · ${elig} vagas elegíveis`;
-  $("#peekTech").innerHTML = `<div class="pills">${rows.slice(0,6).map(([t,n]) => `<button type="button" class="pill" data-tech="${t}">${esc(TECH[t]||t)} <b>${n}</b></button>`).join("") || '<span class="muted">Sem dados</span>'}</div>` +
-    (rows.length > 6 ? `<div class="sub">+ ${rows.length - 6} tecnologias ao expandir</div>` : "");
+  $("#sumTech").textContent = rows.length ? rows.slice(0,3).map(([t,n]) => `${TECH[t]||t} ${n}`).join(" · ") : "sem dados";
   $("#techList").innerHTML = rows.map(([t,n]) => `<div class="barrow click" data-tech="${t}"><span class="lbl">${esc(TECH[t]||t)}</span><div class="track"><div class="single" data-t="${esc(TECH[t]||t)}: ${n} elegíveis de ${cntAll[t]} abertas" style="width:${n/max*100}%"></div></div><span class="num">${n}<span class="muted">/${cntAll[t]}</span></span></div>`).join("") || '<div class="muted">Sem dados</div>';
 })();
 document.addEventListener("mousemove", e => { const t = e.target.closest && e.target.closest("[data-t]");
@@ -494,6 +520,58 @@ $("#out").addEventListener("click", e => {
 $("#runs").innerHTML = DATA.runs.map(r => `<tr><td>${r.run_id}</td><td>${fmtDate(r.started_at)}</td><td>${r.total}</td><td>${r.eligible}</td><td>${r.new_count}</td><td>${r.closed_count}</td></tr>`).join("");
 render();
 
+/* ---------- aba LinkedIn (captura manual) ---------- */
+const liJobs = jobs.filter(j => j.li);
+const FIT = ["Alta","Média","Baixa"], fitRank = s => { const i = FIT.indexOf(s); return i < 0 ? 3 : i; };
+const FIT_BADGE = {"Alta":"b-ELIGIBLE","Média":"b-MAYBE","Baixa":"b-BLOCKED"};
+const liState = {fit:""};
+const applicantsN = s => { const m = String(s||"").match(/\d+/); return m ? +m[0] : 9999; };
+$("#nAll").textContent = open.length.toLocaleString("pt-BR");
+$("#nLi").textContent = liJobs.length.toLocaleString("pt-BR");
+(function(){
+  const stamp = liJobs.map(j => j.first_seen).sort().pop();
+  $("#liNote").innerHTML = liJobs.length
+    ? `Vagas captadas à mão pelo Claude no Chrome (busca de Salesforce) e importadas para o banco${stamp ? ` em ${esc(fmtDay(stamp))}` : ""}. As colunas vêm da planilha da captura; clique numa linha para abrir a página completa da vaga.`
+    : `Ainda não há vagas do LinkedIn. Use <b>Importar vagas</b> na janela do app (ou <code>python main.py --importar arquivo</code>) com a planilha da captura manual.`;
+  const cnt = k => liJobs.filter(j => !k || j.li.fit === k).length;
+  $("#liFit").innerHTML = [["", "Todas"], ...FIT.map(f => [f, f])].map(([k,l]) =>
+    `<button type="button" data-f="${k}" aria-pressed="${k===liState.fit}">${l} <span class="muted">${cnt(k)}</span></button>`).join("");
+})();
+function liRows(){
+  const q = $("#liQ").value.trim().toLowerCase(), w = $("#liWork").value, k = $("#liSort").value;
+  const rows = liJobs.filter(j => (!liState.fit || j.li.fit === liState.fit) && (!w || j.workplace === w) &&
+    (!q || (j.title+" "+j.company+" "+j.location+" "+j.li.seniority+" "+j.li.notes+" "+plain(rec(j).description_html)).toLowerCase().includes(q)));
+  const cmp = { fit:(a,b) => fitRank(a.li.fit) - fitRank(b.li.fit) || b.score - a.score,
+    score:(a,b) => b.score - a.score, company:(a,b) => a.company.localeCompare(b.company,"pt-BR") || fitRank(a.li.fit) - fitRank(b.li.fit),
+    applicants:(a,b) => applicantsN(a.li.applicants) - applicantsN(b.li.applicants) || fitRank(a.li.fit) - fitRank(b.li.fit) }[k];
+  return rows.sort(cmp);
+}
+function liRender(){
+  document.querySelectorAll("#liFit button").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === liState.fit));
+  const rows = liRows();
+  $("#liCount").textContent = `${rows.length} de ${liJobs.length}`;
+  $("#liEmpty").hidden = rows.length > 0 || !liJobs.length; $("#liEmpty").textContent = "Nenhuma vaga com esses filtros.";
+  $("#liOut").innerHTML = !rows.length ? "" : `<div class="tablewrap"><table class="li-table"><thead><tr><th>Aderência</th><th>Vaga</th><th>Local</th><th>Modelo</th><th>Publicada</th><th>Candidaturas</th><th>Senioridade</th><th>Requisitos / stack</th><th>Observações</th><th>Link</th></tr></thead><tbody>` +
+    rows.map(j => { const l = j.li, stack = plain(rec(j).description_html).replace(/\s+/g," ").trim();
+      const model = [WORK[j.workplace], COMMIT[j.commitment] || j.commitment].filter(Boolean).join(" · ");
+      return `<tr class="row" data-go="${esc(j.key)}"><td><span class="badge ${FIT_BADGE[l.fit]||"b-n"}">${esc(l.fit||"—")}</span></td>
+        <td class="ttl"><b>${esc(j.title)}</b><div>${esc(j.company)}</div></td><td>${esc(j.location)}</td><td>${esc(model)}</td>
+        <td class="muted">${esc(l.posted || (j.posted_at ? ago(j.posted_at) : ""))}</td><td class="muted">${esc(l.applicants)}</td><td>${esc(l.seniority)}</td>
+        <td class="stack">${esc(stack.length > 170 ? stack.slice(0,170) + "…" : stack)}</td><td class="obs">${esc(l.notes)}</td>
+        <td>${j.url ? `<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" data-ext>abrir</a>` : ""}</td></tr>`; }).join("") + "</tbody></table></div>";
+}
+$("#liFit").onclick = e => { const b = e.target.closest("[data-f]"); if (!b) return; liState.fit = b.dataset.f; liRender(); };
+["liQ","liWork","liSort"].forEach(id => $("#"+id).addEventListener("input", liRender));
+$("#liOut").addEventListener("click", e => { if (e.target.closest("[data-ext]")) return;
+  const tr = e.target.closest("tr[data-go]"); if (tr) location.hash = "#/vaga/" + encodeURIComponent(tr.dataset.go); });
+
+function setTab(t){
+  state.tab = t; $("#tabAll").hidden = t === "li"; $("#tabLi").hidden = t !== "li";
+  document.querySelectorAll(".tabs [data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  store.set("tab", t); if (t === "li") liRender();
+}
+document.querySelectorAll(".tabs [data-tab]").forEach(b => b.onclick = () => { location.hash = b.dataset.tab === "li" ? "#/linkedin" : "#/"; });
+
 /* ---------- página completa da vaga ---------- */
 const fact = (icon, label, val) => val || val === 0 ? `<div class="fact"><dt>${ic(icon)}${label}</dt><dd>${val}</dd></div>` : "";
 const dateFact = iso => iso ? `${esc(fmtDay(iso))} <span class="muted">(${ago(iso)})</span>` : "";
@@ -558,7 +636,8 @@ function route(){
   const h = location.hash, m = h.match(/^#\/vaga\/(.+?)(?:\/v(\d+))?$/);
   if (m) { if (!viewing) homeScroll = window.scrollY; viewing = decodeURIComponent(m[1]);
     $("#viewHome").hidden = true; $("#viewJob").hidden = false; showJob(viewing, m[2] ? +m[2] : 0); window.scrollTo(0, 0); }
-  else { $("#viewJob").hidden = true; $("#viewHome").hidden = false; const was = viewing; viewing = null; if (was) window.scrollTo(0, homeScroll); }
+  else { $("#viewJob").hidden = true; $("#viewHome").hidden = false; const was = viewing; viewing = null;
+    setTab(h === "#/linkedin" ? "li" : h === "#/" ? "all" : store.get("tab", "all")); if (was) window.scrollTo(0, homeScroll); }
 }
 window.addEventListener("hashchange", route); route();
 </script>

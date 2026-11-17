@@ -46,6 +46,15 @@ jobs:
                -Wait -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\autoteste.txt" -RedirectStandardError "$env:RUNNER_TEMP\autoteste.err"
           Get-Content "$env:RUNNER_TEMP\autoteste.txt", "$env:RUNNER_TEMP\autoteste.err" -ErrorAction SilentlyContinue
           if ($p.ExitCode -ne 0) { throw "autoteste da janela falhou (código $($p.ExitCode))" }
+      - name: Teste do painel embutido na janela (WebView2 como janela filha)
+        shell: pwsh
+        env:
+          VAGAS1000_HOME: ${{ runner.temp }}\v1000-demo
+        run: |
+          $p = Start-Process -FilePath "dist\vagas1000\vagas1000.exe" -ArgumentList "--janela-painel","--autoteste-embutido" `
+               -Wait -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\embutido.txt" -RedirectStandardError "$env:RUNNER_TEMP\embutido.err"
+          Get-Content "$env:RUNNER_TEMP\embutido.txt", "$env:RUNNER_TEMP\embutido.err" -ErrorAction SilentlyContinue
+          if ($p.ExitCode -ne 0) { throw "autoteste do painel embutido falhou (código $($p.ExitCode))" }
       - name: Instalador Windows (NSIS, por usuário)
         shell: bash
         run: |

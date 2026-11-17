@@ -68,6 +68,13 @@ def _versions(conn: sqlite3.Connection) -> dict[str, list[dict]]:
     return by
 
 
+def _linkedin_columns(meta: dict) -> dict:
+    """Colunas da captura manual do LinkedIn que a aba do painel mostra (guardadas em `metadata` pelo importador)."""
+    return {"fit": meta.get("aderência (planilha)", ""), "applicants": meta.get("candidaturas", ""),
+            "seniority": meta.get("senioridade", ""), "notes": meta.get("observações", ""),
+            "posted": meta.get("publicada_original", "")}
+
+
 def collect(conn: sqlite3.Connection) -> dict:
     runs = [dict(r) for r in conn.execute("SELECT * FROM runs ORDER BY run_id DESC LIMIT 30")]
     last = runs[0]["run_id"] if runs else 0
@@ -76,6 +83,7 @@ def collect(conn: sqlite3.Connection) -> dict:
     for r in conn.execute("SELECT * FROM jobs"):
         locs = _j(r["locations"], [])
         rid = len(records)
+        meta = _j(r["metadata"], {})
         jobs.append({
             "key": r["job_key"], "rid": rid, "company_id": r["company_id"], "company": r["company_name"],
             "title": r["title"], "url": r["url"], "location": r["location"], "nloc": len(locs), "area": r["area"],
@@ -85,12 +93,13 @@ def collect(conn: sqlite3.Connection) -> dict:
             "first_seen": r["first_seen"], "last_seen": r["last_seen"], "closed_at": r["closed_at"] or "",
             "status": r["status"], "is_new": bool(last > 1 and r["first_run_id"] == last),
             "intl": not is_brazil_location(r["location"]), "versions": r["versions"] or 1,
+            "li": _linkedin_columns(meta) if r["source"] == "linkedin" else None,
         })
         records.append({
             "key": r["job_key"], "source": r["source"], "job_id": r["job_id"], "reasons": _j(r["reasons"], []),
             "description": "" if r["description_html"] else (r["description"] or ""),
             "description_html": r["description_html"] or "", "sections": _j(r["sections"], []),
-            "metadata": _j(r["metadata"], {}), "locations": locs, "apply_url": r["apply_url"] or "",
+            "metadata": meta, "locations": locs, "apply_url": r["apply_url"] or "",
             "salary_min": r["salary_min"], "salary_max": r["salary_max"], "salary_currency": r["salary_currency"] or "",
             "salary_period": r["salary_period"] or "", "updated_at": r["updated_at_src"] or "",
             "deadline": r["deadline"] or "", "requisition_id": r["requisition_id"] or "",

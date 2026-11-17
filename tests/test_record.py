@@ -215,7 +215,57 @@ class DashboardRecordTests(unittest.TestCase):
         self.assertNotIn("</script><script>alert(1)", html)
 
 
+class LinkedinTabTests(unittest.TestCase):
+    """A aba “LinkedIn · captura manual” recebe as colunas da planilha que o importador guardou em `metadata`."""
+
+    def test_imported_linkedin_jobs_carry_the_sheet_columns_and_others_do_not(self):
+        from scraper import importer
+        row = {"Vaga": "Salesforce Developer", "Empresa": "Acme", "Aderência": "Alta", "Local": "São Paulo, SP",
+               "Modelo / contrato": "Híbrido · integral", "Publicada": "há 3 dias", "Candidaturas": "53 cliques",
+               "Senioridade": "Sênior", "Requisitos / stack": "Apex, LWC", "Observações": "Vaga verificada",
+               "Link": "https://www.linkedin.com/jobs/view/4490150497"}
+        with tempfile.TemporaryDirectory() as tmp:
+            conn = db.connect(Path(tmp) / "t.db")
+            db.save_run(conn, [J(job_id="9", title="Outra vaga")], {"acme": {"ok": True, "count": 1}})
+            db.save_import(conn, [importer.to_job(row)])
+            data = dashboard.collect(conn)
+            html = dashboard.build(conn, Path(tmp) / "d.html").read_text(encoding="utf-8")
+            conn.close()
+        by_title = {j["title"]: j for j in data["jobs"]}
+        self.assertEqual(by_title["Salesforce Developer"]["li"],
+                         {"fit": "Alta", "applicants": "53 cliques", "seniority": "Sênior",
+                          "notes": "Vaga verificada", "posted": "há 3 dias"})
+        self.assertIsNone(by_title["Outra vaga"]["li"])
+        for marker in ('id="tabBtnLi"', 'id="tabLi"', 'data-embed'):          # abas e modo embutido existem no painel
+            self.assertIn(marker, html)
+
+
 class PanelWindowTests(unittest.TestCase):
+    def test_send_route_counts_up_and_embed_url_hides_the_inner_tabs(self):
+        from scraper import panel_window
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(panel_window.paths, "OUT", Path(tmp)):
+                panel_window.send_route("#/")
+                panel_window.send_route("#/linkedin")
+                cmd = json.loads(panel_window.cmd_file().read_text(encoding="utf-8"))
+        self.assertEqual(cmd, {"n": 2, "route": "#/linkedin"})
+        url = panel_window.embed_url(Path("C:/x/dashboard.html"), "#/linkedin")
+        self.assertTrue(url.endswith("dashboard.html?embed=1#/linkedin"))
+        self.assertTrue(panel_window.embed_url(Path("C:/x/dashboard.html"), "lixo").endswith("?embed=1#/"))
+
+    def test_embedded_panel_reports_failure_when_webview_is_unavailable(self):
+        import builtins
+        from scraper import panel_window
+        real_import = builtins.__import__
+
+        def fake(name, *a, **k):
+            if name == "webview":
+                raise ImportError("sem webview")
+            return real_import(name, *a, **k)
+
+        with mock.patch("builtins.__import__", side_effect=fake):
+            self.assertEqual(panel_window.run_embedded(12345), panel_window.EMBED_FAILED)
+
     def test_get_raw_reads_the_payload_from_the_database(self):
         from scraper import panel_window
         with tempfile.TemporaryDirectory() as tmp:
