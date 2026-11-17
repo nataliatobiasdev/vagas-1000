@@ -1,0 +1,19 @@
+{
+  "max_modulos_no_card": 4,
+  "relevancia_minima": 0.25,
+  "modulos": {
+    "movimento_empresa": {"ativo": true, "min_eventos": 5, "min_parcela": 0.10},
+    "empresa_zerou_voltou": {"ativo": true},
+    "elegiveis_novas": {"ativo": true},
+    "mudanca_veredito": {"ativo": true},
+    "mudanca_nota": {"ativo": true},
+    "salario": {"ativo": true},
+    "modalidade_local": {"ativo": true},
+    "vagas_reescritas": {"ativo": true},
+    "tecnologia": {"ativo": true, "min_saldo": 3},
+    "relampago": {"ativo": true, "max_dias": 2},
+    "reaberturas": {"ativo": true},
+    "anomalia": {"ativo": true, "fator": 3, "min_eventos": 5, "janela_dias": 7},
+    "fonte_sem_leitura": {"ativo": true, "min_dias": 2}
+  }
+}

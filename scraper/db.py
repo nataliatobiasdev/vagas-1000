@@ -5,7 +5,9 @@ Tabelas
   runs            uma linha por execução (totais, novas, encerradas)
   run_companies   resultado por empresa em cada execução (ok, quantidade, erro)
   jobs            a vaga (1 linha por vaga): dados atuais + first_run_id/last_run_id/status
-  job_snapshots   nota e veredito da vaga em cada execução (histórico de mudanças)
+  job_snapshots   nota e veredito da vaga em cada execução (só até a 1.4: hoje o histórico vai em job_events)
+  job_events      histórico dia a dia: só o que mudou (entrou, saiu, voltou, mudou + campo), uma linha por (dia, vaga, tipo)
+  day_summary     resumo e indicadores de cada data (o dia é a DATA da extração; várias extrações no dia viram um só)
   job_versions    versão completa da vaga (descrição, salário, locais, payload bruto) a cada mudança de conteúdo:
                   mesmo que a fonte edite ou apague a vaga, o que já foi visto continua guardado
 
@@ -21,11 +23,12 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import shutil
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from . import paths
+from . import history, paths
 from .models import Job
 
 log = logging.getLogger("scraper")
@@ -82,11 +85,12 @@ JOB_COLUMNS_V2 = {
     "sections": "TEXT", "metadata": "TEXT", "raw": "TEXT", "content_hash": "TEXT", "detail_at": "TEXT",
     "closed_at": "TEXT", "versions": "INTEGER DEFAULT 0",
 }
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = history.HISTORY_VERSION
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
     have = {r[1] for r in conn.execute("PRAGMA table_info(jobs)")}
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
     with conn:
         for col, typ in JOB_COLUMNS_V2.items():
             if col not in have:
@@ -94,18 +98,41 @@ def _migrate(conn: sqlite3.Connection) -> None:
         # vagas encerradas antes da migração: closed_at = início da execução em que sumiram
         conn.execute("UPDATE jobs SET closed_at=(SELECT started_at FROM runs WHERE runs.run_id=jobs.closed_run_id) "
                      "WHERE status='closed' AND closed_at IS NULL AND closed_run_id IS NOT NULL")
+        if version < history.HISTORY_VERSION:               # banco anterior ao histórico: reconstrói os dias já gravados
+            history.backfill(conn)
         conn.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
 
 def connect(path: Path | str | None = None) -> sqlite3.Connection:
     path = Path(path) if path else DEFAULT_DB
     path.parent.mkdir(parents=True, exist_ok=True)
+    _backup_before_history(path)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA temp_store=MEMORY")      # ordenações sem arquivo temporário (%TEMP% pode estar bloqueado)
     conn.executescript(SCHEMA)
+    conn.executescript(history.SCHEMA)
     _migrate(conn)
     return conn
+
+
+def _backup_before_history(path: Path) -> None:
+    """Banco com dados e anterior ao histórico: guarda uma cópia antes da migração (feita uma vez, nunca sobrescreve)."""
+    bak = path.with_name(path.name + ".bak-antes-do-historico")
+    if bak.exists() or not path.exists() or path.stat().st_size == 0:
+        return
+    try:
+        c = sqlite3.connect(path)
+        try:
+            version = c.execute("PRAGMA user_version").fetchone()[0]
+            has_jobs = c.execute("SELECT COUNT(*) FROM sqlite_master WHERE name='jobs'").fetchone()[0]
+        finally:
+            c.close()
+        if has_jobs and version < history.HISTORY_VERSION:
+            shutil.copy2(path, bak)
+            log.info("banco: cópia de segurança antes do histórico em %s", bak.name)
+    except (OSError, sqlite3.Error) as e:                   # sem cópia não impede a migração (ela só acrescenta tabelas)
+        log.warning("banco: não consegui copiar antes do histórico (%s)", e)
 
 
 def job_key(j: Job) -> str:
@@ -173,7 +200,8 @@ def _merged(j: Job, old: sqlite3.Row | None) -> dict:
     return v
 
 
-def _upsert_job(conn: sqlite3.Connection, j: Job, run_id: int, now: str) -> bool:
+def _upsert_job(conn: sqlite3.Connection, j: Job, run_id: int, now: str, baseline: bool = False,
+                profile_changed: bool = False) -> bool:
     """Grava/atualiza uma vaga com o registro completo (e versão, se o conteúdo mudou). True se a vaga é nova."""
     key = job_key(j)
     old = conn.execute("SELECT * FROM jobs WHERE job_key=?", (key,)).fetchone()
@@ -188,6 +216,7 @@ def _upsert_job(conn: sqlite3.Connection, j: Job, run_id: int, now: str) -> bool
                      locations=v["locations"], salary_text=v["salary_text"], salary_min=v["salary_min"],
                      salary_max=v["salary_max"])
     chash = content_hash(merged_job)
+    history.on_job_seen(conn, history.day_of(now), key, old, v, j, chash, run_id, now, baseline, profile_changed)
     cols = (j.company_name, j.source, v["job_id"], v["title"], v["url"], v["location"], v["area"],
             v["workplace_type"], v["commitment"], v["description"], j.score, j.verdict, _dumps(j.techs),
             _dumps(j.reasons), v["team"], _dumps(v["locations"]), v["apply_url"], v["salary_text"],
@@ -216,8 +245,6 @@ def _upsert_job(conn: sqlite3.Connection, j: Job, run_id: int, now: str) -> bool
         conn.execute("INSERT INTO job_versions(job_key,run_id,seen_at,content_hash,data,raw) VALUES(?,?,?,?,?,?)",
                      (key, run_id, now, chash, _dumps(data), _dumps(v["raw"])))
         conn.execute("UPDATE jobs SET versions=versions+1 WHERE job_key=?", (key,))
-    conn.execute("INSERT OR REPLACE INTO job_snapshots(run_id,job_key,score,verdict,title,location) VALUES(?,?,?,?,?,?)",
-                 (run_id, key, j.score, j.verdict, j.title, j.location))
     return old is None
 
 
@@ -238,9 +265,14 @@ def save_run(conn: sqlite3.Connection, jobs: list[Job], status: dict[str, dict],
         if companies:
             sync_companies(conn, companies)
         run_id = conn.execute("INSERT INTO runs(started_at) VALUES(?)", (now,)).lastrowid
+        day = history.day_of(now)
+        baseline = day == history.first_day(conn)            # o 1º dia do banco é a linha de base: não conta como "entrou"
+        profile_changed = history.looks_like_profile_change(conn, jobs)
+        if profile_changed:
+            log.info("histórico: o perfil parece ter mudado (muitos vereditos de uma vez): sem eventos de veredito/nota")
         new_count = 0
         for j in jobs:
-            if _upsert_job(conn, j, run_id, now):
+            if _upsert_job(conn, j, run_id, now, baseline, profile_changed):
                 new_count += 1
 
         closed_count = 0
@@ -248,15 +280,23 @@ def save_run(conn: sqlite3.Connection, jobs: list[Job], status: dict[str, dict],
             conn.execute("INSERT OR REPLACE INTO run_companies(run_id,company_id,ok,job_count,error) VALUES(?,?,?,?,?)",
                          (run_id, cid, 1 if st.get("ok") else 0, st.get("count", 0), st.get("error")))
             if st.get("ok") and st.get("count", 0) > 0:
+                gone = conn.execute("SELECT job_key, verdict, score FROM jobs WHERE company_id=? AND status='open' "
+                                    "AND last_run_id<>?", (cid, run_id)).fetchall()
                 cur = conn.execute("UPDATE jobs SET status='closed', closed_run_id=?, closed_at=? "
                                    "WHERE company_id=? AND status='open' AND last_run_id<>?", (run_id, now, cid, run_id))
                 closed_count += cur.rowcount
+                for g in gone:
+                    history.on_job_closed(conn, day, g["job_key"], cid, g["verdict"], g["score"], run_id, now)
             elif st.get("ok"):
                 log.warning("[%s] 0 vagas capturadas: nenhuma vaga anterior foi marcada como encerrada", cid)
 
         eligible = sum(1 for j in jobs if j.verdict == "ELIGIBLE")
         conn.execute("UPDATE runs SET total=?, eligible=?, new_count=?, closed_count=? WHERE run_id=?",
                      (len(jobs), eligible, new_count, closed_count, run_id))
+        try:
+            history.refresh_day(conn, day)
+        except Exception:                                    # o histórico nunca impede a gravação da execução
+            log.exception("histórico: não consegui resumir %s", day)
     log.info("banco: execução %d gravada (%d vagas, %d novas, %d encerradas)", run_id, len(jobs), new_count, closed_count)
     return run_id
 

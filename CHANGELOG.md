@@ -4,6 +4,14 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+### Adicionado (base do histórico dia a dia; a aba Histórico vem na próxima etapa)
+- **Histórico por data**: o banco passa a guardar só o que mudou, uma linha por (dia, vaga, tipo, campo) em `job_events` (entrou, saiu, voltou, mudou), e um resumo por data em `day_summary` (abertas no fim do dia, entradas, saídas, mudanças, elegíveis, cobertura de fontes). Várias extrações no mesmo dia viram um dia só.
+- **Indicadores modulares** (`config/historico.json`): bloco fixo mais módulos de relevância variável (empresa com grande movimento, elegíveis novas, mudança de veredito, nota, salário, modalidade, vagas reescritas, tecnologia em alta, vagas relâmpago, reaberturas, anomalias e fonte sem leitura).
+- Na primeira abertura do banco o app reconstrói os dias já gravados e guarda antes uma cópia (`vagas.db.bak-antes-do-historico`).
+
+### Alterado
+- `job_snapshots` deixa de receber linhas novas (as existentes ficam). O histórico de nota e veredito vai em `job_events`.
+
 ## [1.4.1] - 2026-11-17
 
 Polimento visual do painel e da documentação (últimos itens da crítica visual).
