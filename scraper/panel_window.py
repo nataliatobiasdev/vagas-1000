@@ -146,6 +146,13 @@ def run_embedded(parent: int, route: str = "#/") -> int:
                 win.destroy()
             except Exception:
                 pass
+            # Destruir uma janela reparentada às vezes trava o desmonte do WebView2 e o processo ficaria órfão
+            # depois que a janela principal some: se ele não terminar sozinho em poucos segundos, termina à força.
+            import os
+            import threading
+            t = threading.Timer(2.5, os._exit, [EMBED_FAILED if state["failed"] else 0])
+            t.daemon = True
+            t.start()
 
     def _worker(win):
         hwnd = 0
@@ -268,7 +275,7 @@ def run_embedded_autotest() -> int:
     result["exit"] = proc.poll()
     w, h = host.winfo_width(), host.winfo_height()
     root.destroy()                                    # o painel percebe que o pai sumiu e fecha sozinho
-    for _ in range(50):
+    for _ in range(100):                              # até 10 s: o desmonte do WebView2 pode demorar um pouco
         if proc.poll() is not None:
             break
         time.sleep(0.1)
