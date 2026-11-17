@@ -4,6 +4,8 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.5.1] - 2026-11-17
+
 ### Adicionado
 - **Adicionar ao CAM** na página da vaga do painel integrado: guarda a vaga e seus dados disponíveis como oportunidade pendente no Career Application Manager. A indicação permanece ao reabrir a vaga, e envios repetidos não criam duplicatas. Abra o CAM atualizado ao menos uma vez para preparar seu banco.
 
