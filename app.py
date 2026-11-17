@@ -214,9 +214,97 @@ class Vagas1000App:
         return self._fonts[key].measure(text)
 
     # ------------------------------------------------------------------ UI
+    def _build_tabs(self):
+        """Abas da janela: Início (esta tela), Painel de vagas e LinkedIn (o painel aparece DENTRO da janela)."""
+        bar = tk.Frame(self.root, bg=BG)
+        bar.pack(side="top", fill="x")
+        inner = tk.Frame(bar, bg=BG)
+        inner.pack(side="left", padx=self.u(22))
+        self.tab_w = {}
+        for key, text in (("home", "Início"), ("panel", "Painel de vagas"), ("li", "LinkedIn")):
+            cell = tk.Frame(inner, bg=BG, cursor="hand2")
+            lab = tk.Label(cell, text=text, bg=BG, fg=MUTED, font=FONT_BODY_SB(10), padx=self.u(14), pady=self.u(9),
+                           cursor="hand2")
+            lab.pack()
+            ind = tk.Frame(cell, bg=BG, height=max(2, self.u(2)))
+            ind.pack(fill="x")
+            for w in (cell, lab):
+                w.bind("<Button-1>", lambda e, k=key: self.show_tab(k))
+                w.bind("<Enter>", lambda e, k=key: self.tab_w[k][0].config(fg=FG))
+                w.bind("<Leave>", lambda e, k=key: self.tab_w[k][0].config(fg=FG if self.tab == k else MUTED))
+            cell.pack(side="left")
+            self.tab_w[key] = (lab, ind)
+        tk.Frame(self.root, bg=BORDER, height=1).pack(side="top", fill="x")
+        self.tab = "home"
+        self.panel_proc = None
+        self.show_tab_style("home")
+
+    def show_tab_style(self, key: str):
+        for k, (lab, ind) in self.tab_w.items():
+            lab.config(fg=FG if k == key else MUTED)
+            ind.config(bg=ACCENT if k == key else BG)
+
+    def show_tab(self, key: str):
+        """Troca a aba. Painel e LinkedIn usam a mesma janela do WebView2, que fica dentro de `panel_host`."""
+        if key != "home" and not (OUT / "dashboard.html").exists():
+            self._append_log("Painel ainda não existe — rode uma atualização.")
+            key = "home"
+        self.tab = key
+        self.show_tab_style(key)
+        if key == "home":
+            self.panel_host.pack_forget()
+            self.canvas.pack(fill="both", expand=True)
+            return
+        self.canvas.pack_forget()
+        self.panel_host.pack(fill="both", expand=True)
+        self.root.update_idletasks()
+        self._open_panel("#/linkedin" if key == "li" else "#/")
+
+    def _open_panel(self, route: str):
+        """Mostra `route` no painel embutido; abre o processo do painel na primeira vez."""
+        from scraper import panel_window
+        if self.panel_proc and self.panel_proc.poll() is None:
+            panel_window.send_route(route)
+            return
+        try:
+            cmd = [sys.executable] if paths.FROZEN else [sys.executable, str(Path(__file__).resolve())]
+            self.panel_proc = subprocess.Popen(
+                cmd + ["--janela-painel", "--embutir", str(self.panel_host.winfo_id()), "--rota", route],
+                cwd=str(ROOT), creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        except Exception as e:
+            self._panel_fallback(f"{type(e).__name__}")
+
+    def _check_panel(self):
+        p = self.panel_proc
+        if p is not None and p.poll() is not None:
+            self.panel_proc = None
+            if self.tab != "home":
+                self._panel_fallback(f"código {p.returncode}")
+
+    def _panel_fallback(self, why: str):
+        """Sem WebView2 (ou falha ao embutir): volta para o Início e abre o painel no navegador padrão."""
+        self._append_log(f"Não consegui mostrar o painel dentro da janela ({why}); abrindo no navegador.")
+        self.show_tab("home")
+        try:
+            os.startfile(OUT / "dashboard.html")  # noqa: S606
+        except OSError:
+            pass
+
+    def _on_close(self):
+        if self.panel_proc and self.panel_proc.poll() is None:
+            self.panel_proc.terminate()
+        self.root.destroy()
+
     def _build(self):
-        self.canvas = tk.Canvas(self.root, bg=BG, highlightthickness=0, bd=0)
+        self._build_tabs()
+        self.stage = tk.Frame(self.root, bg=BG)
+        self.stage.pack(side="top", fill="both", expand=True)
+        self.canvas = tk.Canvas(self.stage, bg=BG, highlightthickness=0, bd=0)
         self.canvas.pack(fill="both", expand=True)
+        self.panel_host = tk.Frame(self.stage, bg=BG)
+        tk.Label(self.panel_host, text="Abrindo o painel…", bg=BG, fg=MUTED, font=FONT_BODY(11)).place(
+            relx=0.5, rely=0.5, anchor="center")
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         c = self.canvas
         self.sub = CText(c, "base local", MUTED)
         self.now = CText(c, "Pronto", FG)
@@ -655,21 +743,8 @@ class Vagas1000App:
             self._append_log("Relatório do LinkedIn ainda não existe — rode 'Buscar no LinkedIn'.")
 
     def open_dashboard(self):
-        """Abre o painel numa janela do app (WebView2). Se não der, cai no navegador padrão."""
-        p = OUT / "dashboard.html"
-        if not p.exists():
-            self._append_log("Painel ainda não existe — rode uma atualização.")
-            return
-        if getattr(self, "panel_proc", None) and self.panel_proc.poll() is None:
-            self._append_log("O painel já está aberto (veja a janela “vagas1000 · Painel”).")
-            return
-        try:
-            cmd = [sys.executable] if paths.FROZEN else [sys.executable, str(Path(__file__).resolve())]
-            self.panel_proc = subprocess.Popen(cmd + ["--janela-painel"], cwd=str(ROOT),
-                                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        except Exception as e:
-            self._append_log(f"Não consegui abrir a janela do painel ({type(e).__name__}); abrindo no navegador.")
-            os.startfile(p)  # noqa: S606
+        """Mostra o painel na aba “Painel de vagas”, dentro desta janela (sem abrir outra)."""
+        self.show_tab("panel")
 
     def open_presenciais(self):
         p = OUT / "presenciais.md"
@@ -683,6 +758,7 @@ class Vagas1000App:
 
     # ------------------------------------------------------------------ loop
     def _poll(self):
+        self._check_panel()
         if self.mode == "linkedin":
             self._poll_linkedin()
             self.root.after(500, self._poll)
@@ -833,6 +909,12 @@ def main():
         return
     if "--janela-painel" in sys.argv:   # painel em janela própria (WebView2); --autoteste: abre, confere e fecha
         from scraper import panel_window
+        if "--autoteste-embutido" in sys.argv:       # CI: embute o painel numa janela de teste e confere
+            raise SystemExit(panel_window.run_embedded_autotest())
+        if "--embutir" in sys.argv:     # painel DENTRO da janela principal: `--embutir <HWND do Frame> [--rota #/linkedin]`
+            args = sys.argv
+            route = args[args.index("--rota") + 1] if "--rota" in args else "#/"
+            raise SystemExit(panel_window.run_embedded(int(args[args.index("--embutir") + 1]), route))
         raise SystemExit(panel_window.run(autotest="--autoteste" in sys.argv))
     load_fonts()
     paths.ensure_config()              # o perfil editável já existe antes da 1ª atualização

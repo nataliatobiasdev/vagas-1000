@@ -4,6 +4,13 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+### Adicionado
+- **Painel dentro da janela principal**: a janela ganha as abas **Início**, **Painel de vagas** e **LinkedIn**; o painel aparece nela (WebView2 como janela filha, do tamanho da área de conteúdo) em vez de abrir outra janela. Sem WebView2, abre no navegador, como antes.
+- **Aba “LinkedIn · captura manual”** no painel: reúne as vagas importadas da captura manual, com as colunas da planilha (aderência, local, modelo, publicada, candidaturas, senioridade, requisitos, observações), busca, filtro por aderência e modelo, ordenação e link para o anúncio.
+
+### Alterado
+- Os painéis **Fontes**, **Por empresa** e **Tecnologias** ficam recolhidos em uma linha só, lado a lado; ao expandir, ocupam a largura inteira, com listas mais baixas.
+
 ## [1.1.0] - 2026-11-16
 
 O vagas1000 passa a ser um **banco de vagas**: cada vaga fica guardada por inteiro, mesmo depois de sair do ar.
