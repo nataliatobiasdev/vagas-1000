@@ -65,6 +65,7 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;str
 /* Contorno de componentes interativos: --border-strong (>= 3:1, WCAG 1.4.11); --border fica para cards e divisores. */
 input[type=search],select,input[type=text]{background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:7px 11px;min-width:0}
 input[type=search]:focus,select:focus{border-color:var(--accent)}
+::placeholder{color:var(--ink-3);opacity:1}               /* o padrão do navegador some no campo escuro; o rótulo acessível está no aria-label */
 input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent);cursor:pointer;flex:none}
 input[type=range]{height:24px;margin:0;accent-color:var(--accent);cursor:pointer}
 .seg{display:inline-flex;background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:3px;gap:2px}
@@ -174,7 +175,7 @@ button.pill{cursor:pointer} button.pill:hover{border-color:var(--ink-3)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
 .card{display:flex;flex-direction:column;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:inset 0 1px 0 var(--hl),0 2px 8px -2px var(--shadow);cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;text-align:left;color:inherit;min-width:0}
 .card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 45%,var(--border));box-shadow:inset 0 1px 0 var(--hl),0 10px 24px -8px var(--shadow);text-decoration:none}
-.card.closed{opacity:.72}
+.card.closed .c-title,.card.closed .tile{opacity:.6}                 /* esmaecer o card inteiro derrubava o contraste dos metadados abaixo de 4,5:1 */
 .c-top{display:flex;align-items:center;gap:10px}
 .tile{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font:600 16px var(--font-head);color:var(--accent-fg);background:linear-gradient(135deg,var(--accent),var(--teal));flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
 .tile.lg{width:54px;height:54px;border-radius:16px;font-size:22px}
@@ -197,6 +198,8 @@ table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--grid);vertical-align:top}
 th{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;font-size:12px;color:var(--ink-2);font-weight:500;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface-2)}
 th[aria-sort=ascending]::after{content:" ▲"} th[aria-sort=descending]::after{content:" ▼"}
+th[data-k]:hover,th[data-k]:focus-visible{color:var(--ink)}
+th[data-k]:not([aria-sort]):hover::after,th[data-k]:not([aria-sort]):focus-visible::after{content:" ↕";opacity:.55}
 tr.row{cursor:pointer} tr.row:hover td{background:var(--raised)}
 td.sc{white-space:nowrap;font-variant-numeric:tabular-nums;width:92px}
 .scbar{display:inline-block;height:8px;border-radius:999px;background:var(--bar);vertical-align:middle;margin-right:6px}
@@ -418,7 +421,10 @@ const kpi = (n, l, cls = "", tip = "") => `<div class="kpi ${cls}"${tip ? ` titl
 $("#kpis").innerHTML = kpi(open.length,"vagas abertas") + kpi(elig,"elegíveis","hot","Vagas abertas que passam no seu perfil") +
   kpi(open.filter(j=>j.is_new).length,"novas na execução","","Novas na última execução");
 const nCos = DATA.companies.filter(c => !c.imported).length, nClosed = jobs.length - open.length;
-$("#kpiMeta").textContent = `${nClosed.toLocaleString("pt-BR")} encerradas guardadas · ${nCos.toLocaleString("pt-BR")} empresas`;
+const badCo = new Set(DATA.companies.filter(c => c.ok === false).map(c => c.company_id));       // fonte que não respondeu na última leitura
+const nUnv = open.filter(j => badCo.has(j.company_id)).length;
+$("#kpiMeta").textContent = `${nClosed.toLocaleString("pt-BR")} encerradas guardadas · ${nCos.toLocaleString("pt-BR")} empresas` +
+  (badCo.size ? ` · ${nUnv.toLocaleString("pt-BR")} das vagas abertas são de ${badCo.size} fonte${badCo.size > 1 ? "s" : ""} sem leitura na última execução (guardadas, não verificadas)` : "");
 
 /* ---------- painéis recolhíveis ---------- */
 function setPanel(id, openIt){
@@ -558,13 +564,15 @@ function render(){
   $("#more").textContent = `Carregar mais (${(total - shown.length).toLocaleString("pt-BR")} restantes)`;
   document.querySelectorAll("#viewSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.view));
   if (state.view === "cards") { $("#out").innerHTML = `<div class="cards">${shown.map(card).join("")}</div>`; return; }
-  const th = (k,l) => `<th data-k="${k}" ${state.sortK===k?`aria-sort="${tableDir===1?"ascending":"descending"}"`:""}>${l}</th>`;
+  const th = (k,l) => `<th data-k="${k}" tabindex="0" title="Ordenar por ${l.toLowerCase()}" ${state.sortK===k?`aria-sort="${tableDir===1?"ascending":"descending"}"`:""}>${l}</th>`;
   $("#out").innerHTML = `<div class="tablewrap"><table><thead><tr>${th("score","Nota")}${th("verdict","Veredito")}${th("company","Empresa")}${th("title","Vaga")}${th("location","Local")}<th>Tecnologias</th>${th("first_seen","Vista em")}</tr></thead><tbody>` +
     shown.map(j => `<tr class="row" data-go="${esc(j.key)}"><td class="sc"><span class="scbar" style="width:${Math.max(2,j.score*0.4)}px"></span>${j.score.toFixed(0)}</td>
       <td><span class="badge b-${j.verdict}">${VERD[j.verdict]||j.verdict}</span></td><td>${esc(j.company)}</td>
       <td>${esc(j.title)}${j.is_new?' <span class="badge b-new">Nova</span>':""}${j.status==="closed"?' <span class="badge b-closed">Encerrada</span>':""}</td>
       <td>${esc(j.location)}<div class="muted">${esc(WORK[j.workplace]||"")}</div></td><td>${j.techs.map(t=>esc(TECH[t]||t)).join(", ")}</td><td class="muted">${fmtDate(j.first_seen)}</td></tr>`).join("") + "</tbody></table></div>";
 }
+$("#out").addEventListener("keydown", e => {              // cabeçalho de coluna acessível pelo teclado
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches("th[data-k]")) { e.preventDefault(); e.target.click(); } });
 $("#out").addEventListener("click", e => {
   const th = e.target.closest("th[data-k]"); if (th) { const k = th.dataset.k; tableDir = state.sortK === k ? -tableDir : (k==="score"||k==="first_seen" ? -1 : 1); state.sortK = k; render(); return; }
   const tr = e.target.closest("tr[data-go]"); if (tr) location.hash = "#/vaga/" + encodeURIComponent(tr.dataset.go); });

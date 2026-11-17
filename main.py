@@ -77,7 +77,6 @@ def main(argv=None):
             prof = json.loads(paths.config_file("profile.json").read_text(encoding="utf-8"))
             print(db.rescore_all(conn, prof), "vagas reavaliadas")
         out = dashboard.build(conn)
-        reports.build_presenciais(conn, paths.OUT / "presenciais.md")
         conn.close()
     else:
         from scraper.driver import make_driver

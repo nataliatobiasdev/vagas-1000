@@ -10,7 +10,6 @@
 | **Atualizar base** | Captura as 54 empresas, grava no banco e regenera o painel |
 | Abas **Início** e **Painel de vagas** | Trocam o conteúdo da própria janela: o painel (`out/dashboard.html`) aparece dentro dela, sem abrir outra. A aba do LinkedIn fica dentro do painel; ele se atualiza sozinho quando a busca termina |
 | **Abrir painel** | Atalho para a aba **Painel de vagas** |
-| **Abrir presenciais** | Abre o relatório de vagas presenciais por estado |
 | **Abrir pasta** | Abre a pasta de dados |
 | **Importar vagas** | Traz vagas captadas fora do app (LinkedIn, planilha) para o banco: veja [Seu banco de vagas](/guia/banco-de-vagas#trazer-vagas-de-fora-linkedin-planilha) |
 | Barra inferior | Empresa em extração, progresso (“12 de 54”), tempo e erros, ao vivo |

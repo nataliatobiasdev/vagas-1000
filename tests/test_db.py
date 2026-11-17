@@ -50,17 +50,20 @@ class DbTests(unittest.TestCase):
         r = db.save_run(self.conn, [], {"a": {"ok": False, "error": "x"}, "b": {"ok": False, "error": "y"}})
         self.assertEqual(r, 0)                                          # 0 = não gravada
         counts = {t: self.conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-                  for t in ("runs", "run_companies", "job_snapshots")}
-        self.assertEqual(counts, {"runs": 1, "run_companies": 1, "job_snapshots": 1})
+                  for t in ("runs", "run_companies", "day_summary")}
+        self.assertEqual(counts, {"runs": 1, "run_companies": 1, "day_summary": 1})
         self.assertEqual(self.state("a:1"), "open")
 
-    def test_job_reopens_and_snapshots_history(self):
+    def test_job_reopens_and_only_the_net_change_is_recorded(self):
+        """Fechar e reabrir no mesmo dia se anula; a nota 50 -> 90 vira UM evento (e não há mais linha por execução)."""
         db.save_run(self.conn, [J("a", "1", "A", score=50)], {"a": {"ok": True, "count": 1}})
         db.save_run(self.conn, [J("a", "2", "B")], {"a": {"ok": True, "count": 1}})     # a:1 encerra
         db.save_run(self.conn, [J("a", "1", "A", score=90)], {"a": {"ok": True, "count": 1}})  # volta
         self.assertEqual(self.state("a:1"), "open")
-        scores = [r[0] for r in self.conn.execute("SELECT score FROM job_snapshots WHERE job_key='a:1' ORDER BY run_id")]
-        self.assertEqual(scores, [50, 90])
+        ev = [tuple(r) for r in self.conn.execute(
+            "SELECT job_key, kind, field, old, new FROM job_events WHERE job_key='a:1' ORDER BY kind, field")]
+        self.assertEqual(ev, [("a:1", "mudou", "nota", "50", "90")])                   # sem 'saiu' nem 'voltou'
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM job_snapshots").fetchone()[0], 0)
 
     def test_other_company_untouched_on_partial_run(self):
         db.save_run(self.conn, [J("a", "1", "A"), J("b", "9", "Z")], {"a": {"ok": True, "count": 1}, "b": {"ok": True, "count": 1}})
@@ -86,19 +89,6 @@ class DbTests(unittest.TestCase):
         data = json.JSONDecoder().raw_decode(html[start:])[0]
         self.assertEqual(data["jobs"][0]["title"], "Vaga </script> teste")
 
-    def test_presenciais_report_groups_bahia(self):
-        from scraper import reports
-        job = Job(company_id="bydbrasil", company_name="BYD Brasil", source="gupy",
-                  title="Inspetor(a) de Qualidade", location="Camaçari, BA",
-                  workplace_type="onsite", url="https://x/1", score=40.0, verdict="MAYBE")
-        db.save_run(self.conn, [job], {"bydbrasil": {"ok": True, "count": 1}})
-        out = reports.build_presenciais(self.conn, Path(self.tmp.name) / "p.md")
-        txt = out.read_text(encoding="utf-8")
-        self.assertIn("Bahia (BA)", txt)
-        self.assertIn("Camaçari, BA", txt)
-        self.assertIn("BYD Brasil", txt)
-        self.assertEqual(reports.estado("Camaçari, BA"), "BA")
-        self.assertEqual(reports.estado("Brasil - BR"), "BR")
 
 
 if __name__ == "__main__":

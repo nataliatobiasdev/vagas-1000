@@ -108,8 +108,12 @@ def collect(conn: sqlite3.Connection) -> dict:
         })
     companies = []
     for r in conn.execute(
+        # o resultado MAIS RECENTE de cada empresa (não só o da última execução): numa execução parcial (refazer só as que
+        # falharam) as outras fontes não podem virar "sem leitura"
         "SELECT c.company_id, c.name, c.board_url, c.adapter, rc.ok, rc.job_count, rc.error FROM companies c "
-        "LEFT JOIN run_companies rc ON rc.company_id=c.company_id AND rc.run_id=? ORDER BY c.composite_score DESC", (last,)):
+        "LEFT JOIN run_companies rc ON rc.company_id=c.company_id AND "
+        "rc.run_id=(SELECT MAX(run_id) FROM run_companies WHERE company_id=c.company_id) "
+        "ORDER BY c.composite_score DESC"):
         ok, count = (None if r["ok"] is None else bool(r["ok"])), r["job_count"]
         if r["adapter"] == "importado":                  # fonte importada de fora: não tem "execução"; mostra o que há no banco
             ok, count = True, sum(1 for j in jobs if j["company_id"] == r["company_id"] and j["status"] == "open")

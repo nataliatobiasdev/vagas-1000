@@ -35,11 +35,12 @@ ALIASES = {
                     "requisitos_stack", "requisitos", "stack"),
     "workplace": ("workplace", "workplace_type", "modalidade", "modelo", "modelo_de_trabalho", "remoto", "work_model",
                   "modelo_contrato", "modelo_e_contrato"),
-    "commitment": ("employment_type", "tipo", "contrato", "tipo_de_contrato", "jobtype", "tipo_de_emprego", "commitment"),
-    "seniority": ("seniority", "nivel", "senioridade", "experience_level", "nivel_de_experiencia"),
+    "commitment": ("employment_type", "tipo", "contrato", "tipo_de_contrato", "tipo_contrato", "jobtype", "tipo_de_emprego",
+                   "commitment"),
+    "seniority": ("seniority", "nivel", "senioridade", "experience_level", "nivel_de_experiencia", "criterio_senioridade"),
     "salary": ("salary", "salario", "remuneracao", "faixa_salarial", "compensation", "pay", "salario_beneficios"),
     "applicants": ("applicants", "candidatos", "num_applicants", "numero_de_candidatos", "candidaturas"),
-    "fit": ("aderencia", "fit", "match", "afinidade"),
+    "fit": ("aderencia", "fit", "match", "afinidade", "aderencia_salesforce", "aderencia_stack"),
     "notes": ("observacoes", "observacao", "notas", "notes", "obs", "comentarios"),
 }
 LIST_KEYS = ("jobs", "vagas", "results", "resultados", "items", "data", "listings")
@@ -266,7 +267,7 @@ def run_import(path: Path | str, source: str | None = None) -> dict:
 
     Devolve {"lidas", "novas", "atualizadas", "fonte", "painel"}. Levanta ValueError se o arquivo não servir.
     """
-    from . import dashboard, db, paths, reports
+    from . import dashboard, db, paths
     from .filtering import score_job
     jobs = parse_file(path, source)
     profile = json.loads(paths.config_file("profile.json").read_text(encoding="utf-8"))
@@ -279,7 +280,6 @@ def run_import(path: Path | str, source: str | None = None) -> dict:
         res = db.save_import(conn, jobs, [{"company_id": src, "name": f"{label} (importado)", "adapter": "importado",
                                            "board_url": "", "composite_score": None}])
         out = dashboard.build(conn)
-        reports.build_presenciais(conn, paths.OUT / "presenciais.md")
     finally:
         conn.close()
     return {"lidas": len(jobs), "novas": res["novas"], "atualizadas": res["atualizadas"], "fonte": src, "painel": str(out)}

@@ -4,6 +4,48 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.5.0] - 2026-11-17
+
+> Histórico dia a dia (base), planilha do LinkedIn no formato do app e remoção do botão “Abrir presenciais”.
+
+### Removido
+- Botão **Abrir presenciais** da janela e o relatório `out/presenciais.md` (não eram usados). O filtro de modalidade “Presencial” no painel continua.
+
+### Adicionado
+- **Planilha da busca Salesforce sênior no formato do app**: a planilha da captura (17/11) entra com aderência Alta/Média/Baixa, senioridade e tipo de contrato na aba LinkedIn. Antes esses três campos não eram reconhecidos na importação.
+- **Script de busca sem IA** (`linkedin-jobs/exportar_planilha.py`): gera a planilha do mesmo formato usando o Chrome já logado, sem tokens. A aderência e o critério de senioridade são regras transparentes (`linkedin-jobs/planilha.py`); contra a planilha de 17/11 batem em 78% das vagas. Abrir a descrição de cada vaga é opcional (`--detalhes`) e o padrão é não abrir, como no modo seguro.
+
+### Alterado
+- A importação de planilha grava as entradas do dia no histórico (antes a importação não resumia o dia).
+
+### Adicionado (base do histórico dia a dia; a aba Histórico vem na próxima etapa)
+- **Histórico por data**: o banco passa a guardar só o que mudou, uma linha por (dia, vaga, tipo, campo) em `job_events` (entrou, saiu, voltou, mudou), e um resumo por data em `day_summary` (abertas no fim do dia, entradas, saídas, mudanças, elegíveis, cobertura de fontes). Várias extrações no mesmo dia viram um dia só.
+- **Indicadores modulares** (`config/historico.json`): bloco fixo mais módulos de relevância variável (empresa com grande movimento, elegíveis novas, mudança de veredito, nota, salário, modalidade, vagas reescritas, tecnologia em alta, vagas relâmpago, reaberturas, anomalias e fonte sem leitura).
+- Na primeira abertura do banco o app reconstrói os dias já gravados e guarda antes uma cópia (`vagas.db.bak-antes-do-historico`).
+
+### Alterado
+- `job_snapshots` deixa de receber linhas novas (as existentes ficam). O histórico de nota e veredito vai em `job_events`.
+
+## [1.4.1] - 2026-11-17
+
+Polimento visual do painel e da documentação (últimos itens da crítica visual).
+
+### Alterado
+- **Campos de busca**: o texto-guia (placeholder) agora tem cor explícita, com contraste de 5,2:1; o padrão do navegador quase sumia no campo escuro.
+- **Cards de vagas encerradas**: só o título e o selo ficam esmaecidos; o restante do card mantém o contraste (antes o card inteiro perdia opacidade e os metadados caíam abaixo de 4,5:1).
+- **Colunas da tabela**: mostram "Ordenar por …" e a seta ↕ ao passar o mouse ou focar, e podem ser acionadas pelo teclado (Tab, Enter ou espaço).
+- A imagem da janela na documentação foi refeita com a versão atual (abas Início e Painel de vagas, botão "Refazer com erro").
+
+## [1.4.0] - 2026-11-17
+
+### Adicionado
+- **Botão "Refazer com erro"** na tela Início: refaz só as fontes cuja última leitura falhou (por exemplo, a Lever depois de uma queda), em segundos em vez dos ~9 min de uma busca inteira. Nada é fechado nem apagado nas outras fontes. Fica desativado quando não há fonte com erro ou enquanto uma busca roda.
+
+### Corrigido
+- **Indicadores do alto da tela Início desatualizados**: os cartões contavam o banco todo (1.201 vagas, 262 elegíveis), incluindo as vagas de fontes que não responderam na última busca, e divergiam da linha de baixo ("1110 vagas · 219 elegíveis"). Agora os cartões mostram o que a última leitura **confirmou**, e as vagas guardadas de fontes sem leitura aparecem à parte ("+91 de 4 fontes sem leitura"). O resumo do painel diz o mesmo.
+- **Fontes do painel após uma execução parcial**: o painel lia o resultado de cada fonte só da última execução, então refazer só algumas fontes deixaria as outras como "sem leitura". Agora vale o resultado mais recente de cada fonte.
+- Quando **nenhuma fonte responde**, a janela diz "Nenhuma fonte respondeu" e que as vagas guardadas foram mantidas, em vez de "Concluído · 0 vagas".
+
 ## [1.3.2] - 2026-11-17
 
 ### Corrigido
