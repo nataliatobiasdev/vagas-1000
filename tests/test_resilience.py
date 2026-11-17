@@ -82,6 +82,18 @@ class HostCircuitBreakerTests(unittest.TestCase):
         self.assertEqual(collectors._retry_wait(err("999"), 0), 60.0)               # teto
         self.assertEqual(collectors._retry_wait(TimeoutError("x"), 0), 2.0)
 
+    def test_server_errors_5xx_also_open_the_breaker(self):
+        """Durante a queda da Lever (17/11) a API respondia 500/502/504 em ~15 s: o disjuntor só olhava timeout."""
+        e = urllib.error.HTTPError("https://x", 504, "Gateway Time-out", {}, None)
+        with mock.patch.object(collectors.urllib.request, "urlopen", side_effect=e) as op:
+            for _ in range(collectors.HOST_FAIL_LIMIT):
+                with self.assertRaises(urllib.error.HTTPError):
+                    collectors._get_json("https://api.lever.co/v0/postings/a")
+            calls = op.call_count
+            with self.assertRaises(collectors.SourceUnavailable):
+                collectors._get_json("https://api.lever.co/v0/postings/b")
+            self.assertEqual(op.call_count, calls)
+
     def test_http_errors_do_not_mark_the_host_as_down(self):
         e = urllib.error.HTTPError("https://x", 429, "Too Many Requests", {}, None)
         with mock.patch.object(collectors.urllib.request, "urlopen", side_effect=e):
