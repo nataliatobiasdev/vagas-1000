@@ -28,6 +28,9 @@ features:
   - title: Painel offline
     details: Um HTML único com filtros, histórico de execuções e novas vagas desde a última coleta. Sem internet, sem servidor.
     link: /arquitetura/dados
+  - title: Acompanhe no CAM
+    details: Envie uma vaga ao CAM e acompanhe no painel quais vagas foram salvas ou já tiveram candidatura registrada.
+    link: /guia/uso#acompanhar-no-cam
   - title: Instalador por usuário
     details: Instalador NSIS sem administrador, gerado no CI e publicado a cada tag. Seus dados ficam em %APPDATA%\vagas1000.
     link: /guia/instalacao
@@ -35,6 +38,6 @@ features:
     details: Violeta e teal sobre neutros escuros, Space Grotesk, Inter e JetBrains Mono empacotadas, na janela e no painel.
     link: /guia/identidade-visual
   - title: Testado de verdade
-    details: 82 testes offline, coleta real das 53 empresas sem navegador e execução do .exe empacotado. O relatório lista o que não funciona.
+    details: Testes offline, verificações de coleta e execução do .exe empacotado. O relatório apresenta os resultados e limites.
     link: /qualidade/relatorio
 ---

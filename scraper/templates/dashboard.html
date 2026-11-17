@@ -170,6 +170,8 @@ button.pill{cursor:pointer} button.pill:hover{border-color:var(--ink-3)}
 .b-closed{background:color-mix(in srgb,var(--danger) 14%,transparent);border-color:color-mix(in srgb,var(--danger) 40%,transparent);color:var(--danger)}
 .b-open{background:color-mix(in srgb,var(--ok) 14%,transparent);border-color:color-mix(in srgb,var(--ok) 40%,transparent);color:var(--ok)}
 .b-n{background:var(--field);border-color:var(--border);color:var(--ink-2);font-weight:500}
+.b-cam{background:color-mix(in srgb,var(--teal) 12%,transparent);border-color:color-mix(in srgb,var(--teal) 40%,var(--border));color:var(--teal)}
+.b-cam-applied{background:color-mix(in srgb,var(--ok) 12%,transparent);border-color:color-mix(in srgb,var(--ok) 40%,var(--border));color:var(--ok)}
 
 /* ---------- cards de vaga ---------- */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
@@ -209,6 +211,9 @@ details.hist summary{cursor:pointer;color:var(--ink-2);font-size:13px;margin:22p
 /* ---------- página da vaga ---------- */
 .crumbs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .crumbs .sp{flex:1}
+.btn.cam-added:disabled{opacity:1;cursor:default;background:color-mix(in srgb,var(--ok) 12%,var(--surface-2));color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--border))}
+.cam-feedback{flex-basis:100%;font-size:13px;color:var(--danger)}
+.cam-feedback:empty{display:none}
 .j-head{display:flex;gap:18px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;box-shadow:inset 0 1px 0 var(--hl),0 4px 18px -6px var(--shadow);margin-bottom:16px}
 .j-head h1{font-size:26px;line-height:1.2;margin:0 0 6px;overflow-wrap:anywhere}
 .j-sub{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--ink-2);margin-bottom:10px}
@@ -362,6 +367,8 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
 <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
 <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
 <symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
 <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
 <symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
@@ -403,6 +410,10 @@ const store = { get(k, d){ try { const v = localStorage.getItem("v1000."+k); ret
 const state = {sortK:"score", techs:new Set(), shown:60, view:store.get("view","cards")};
 const PAGE = 60;
 const jobs = DATA.jobs, byKey = Object.fromEntries(jobs.map(j => [j.key, j]));
+let camStatuses = {};
+const camBadge = j => camStatuses[j.key] === 'applied'
+  ? '<span class="badge b-cam-applied">Candidatura enviada</span>'
+  : camStatuses[j.key] === 'pending' ? '<span class="badge b-cam">No CAM</span>' : '';
 const open = jobs.filter(j => j.status === "open");
 const tipEl = $("#tip");
 
@@ -554,7 +565,7 @@ function card(j){
       ${wp?`<span>${ic("globe")}${wp}</span>`:""}${ct?`<span>${ic("brief")}${esc(ct)}</span>`:""}${posted}</div>
     <div class="c-chips">${sal}${j.techs.slice(0,4).map(t => `<span class="chip">${esc(TECH[t]||t)}</span>`).join("")}</div>
     <div class="c-foot"><span class="badge b-${j.verdict}">${VERD[j.verdict]||j.verdict}</span>${j.is_new?'<span class="badge b-new">Nova</span>':""}${j.status==="closed"?'<span class="badge b-closed">Encerrada</span>':""}
-      ${j.versions>1?`<span class="badge b-n" data-t="A fonte editou esta vaga ${j.versions-1}×">v${j.versions}</span>`:""}<span class="when">vista ${ago(j.first_seen)}</span></div></a>`;
+      ${j.versions>1?`<span class="badge b-n" data-t="A fonte editou esta vaga ${j.versions-1}×">v${j.versions}</span>`:""}${camBadge(j)}<span class="when">vista ${ago(j.first_seen)}</span></div></a>`;
 }
 function render(){
   updateAdv();
@@ -568,7 +579,7 @@ function render(){
   $("#out").innerHTML = `<div class="tablewrap"><table><thead><tr>${th("score","Nota")}${th("verdict","Veredito")}${th("company","Empresa")}${th("title","Vaga")}${th("location","Local")}<th>Tecnologias</th>${th("first_seen","Vista em")}</tr></thead><tbody>` +
     shown.map(j => `<tr class="row" data-go="${esc(j.key)}"><td class="sc"><span class="scbar" style="width:${Math.max(2,j.score*0.4)}px"></span>${j.score.toFixed(0)}</td>
       <td><span class="badge b-${j.verdict}">${VERD[j.verdict]||j.verdict}</span></td><td>${esc(j.company)}</td>
-      <td>${esc(j.title)}${j.is_new?' <span class="badge b-new">Nova</span>':""}${j.status==="closed"?' <span class="badge b-closed">Encerrada</span>':""}</td>
+      <td>${esc(j.title)}${j.is_new?' <span class="badge b-new">Nova</span>':""}${j.status==="closed"?' <span class="badge b-closed">Encerrada</span>':""} ${camBadge(j)}</td>
       <td>${esc(j.location)}<div class="muted">${esc(WORK[j.workplace]||"")}</div></td><td>${j.techs.map(t=>esc(TECH[t]||t)).join(", ")}</td><td class="muted">${fmtDate(j.first_seen)}</td></tr>`).join("") + "</tbody></table></div>";
 }
 $("#out").addEventListener("keydown", e => {              // cabeçalho de coluna acessível pelo teclado
@@ -615,7 +626,7 @@ function liRender(){
       const model = [WORK[j.workplace], COMMIT[j.commitment] || j.commitment].filter(Boolean).join(" · ");
       const sub = [j.company, l.seniority].filter(Boolean).join(" · ");     // requisitos e descrição ficam na página da vaga
       return `<tr class="row" data-go="${esc(j.key)}"><td><span class="badge ${FIT_BADGE[l.fit]||"b-n"}">${esc(l.fit||"—")}</span></td>
-        <td class="ttl"><b>${esc(j.title)}</b><div>${esc(sub)}</div>${l.notes ? `<div class="obs1" title="${esc(l.notes)}">${esc(l.notes)}</div>` : ""}</td><td>${esc(j.location)}</td><td>${esc(model)}</td>
+        <td class="ttl"><b>${esc(j.title)}</b> ${camBadge(j)}<div>${esc(sub)}</div>${l.notes ? `<div class="obs1" title="${esc(l.notes)}">${esc(l.notes)}</div>` : ""}</td><td>${esc(j.location)}</td><td>${esc(model)}</td>
         <td class="muted">${esc(l.posted || (j.posted_at ? ago(j.posted_at) : ""))}</td><td class="muted">${esc(l.applicants)}</td>
         <td>${j.url ? `<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" data-ext>abrir</a>` : ""}</td></tr>`; }).join("") + "</tbody></table></div>";
 }
@@ -632,7 +643,7 @@ function setTab(t){
 document.querySelectorAll(".tabs [data-tab]").forEach(b => b.onclick = () => { location.hash = b.dataset.tab === "li" ? "#/linkedin" : "#/"; });
 
 /* ---------- página completa da vaga ---------- */
-/* cam-status-v2 */
+/* cam-status-v4 */
 const fact = (icon, label, val) => val || val === 0 ? `<div class="fact"><dt>${ic(icon)}${label}</dt><dd>${val}</dd></div>` : "";
 const dateFact = iso => iso ? `${esc(fmtDay(iso))} <span class="muted">(${ago(iso)})</span>` : "";
 let homeScroll = 0, viewing = null;
@@ -654,8 +665,8 @@ function showJob(key, verN){
   const locs = (R.locations && R.locations.length ? R.locations : [j.location]).filter(Boolean);
   $("#viewJob").innerHTML = `
     <div class="crumbs"><a class="btn" href="#/" id="back">${ic("back")}Voltar às vagas</a><span class="sp"></span>
-      ${links.join("")}<button class="btn primary" id="addCam" type="button">Adicionar ao CAM</button><button class="btn" id="copyLink" type="button">${ic("copy")}Copiar link</button>
-      <button class="btn" id="dlRec" type="button">${ic("dl")}Baixar registro</button><button class="btn" onclick="window.print()" type="button">${ic("print")}Imprimir</button></div>
+      ${links.join("")}<button class="btn" id="addCam" type="button">${ic("plus")}<span>Adicionar ao CAM</span></button><button class="btn" id="copyLink" type="button">${ic("copy")}Copiar link</button>
+      <button class="btn" id="dlRec" type="button">${ic("dl")}Baixar registro</button><button class="btn" onclick="window.print()" type="button">${ic("print")}Imprimir</button><span class="cam-feedback" id="camFeedback" role="status" aria-live="polite"></span></div>
     ${ver && !ver._cur ? `<div class="notice"><b>Versão ${ver.n} de ${vers.length}</b> · como a vaga estava em ${esc(fmtDate(ver.seen_at))}. <a href="#/vaga/${encodeURIComponent(key)}">Ver a versão atual</a></div>` : ""}
     <div class="j-head"><div class="tile lg">${esc(j.company.slice(0,1).toUpperCase())}</div>
       <div style="flex:1;min-width:0"><div class="sub">${esc(j.company)}</div><h1>${esc(R.title || j.title)}</h1>
@@ -685,27 +696,35 @@ function showJob(key, verN){
     </div></div>`;
   $("#back").onclick = e => { if (history.length > 1) { e.preventDefault(); history.back(); } };
   const camButton = $("#addCam");
+  const camFeedback = $("#camFeedback");
+  const camAdded = (label) => {
+    camButton.innerHTML = `${ic("check")}<span>${label}</span>`;
+    camButton.classList.add("cam-added");
+    camButton.disabled = true;
+  };
   const camApi = window.pywebview && window.pywebview.api;
   if (camApi && camApi.cam_status) {
     camButton.disabled = true;
     camApi.cam_status(key).then(result => {
       if (!camButton.isConnected) return;
       if (result.status === 'pending' || result.status === 'applied') {
-        camButton.textContent = result.status === 'applied' ? 'Candidatura no CAM' : 'Adicionada ao CAM';
-        camButton.disabled = true;
+        camAdded(result.status === 'applied' ? 'Candidatura no CAM' : 'Adicionada ao CAM');
       } else camButton.disabled = false;
     }).catch(() => { if (camButton.isConnected) camButton.disabled = false; });
   }
   $("#addCam").onclick = async () => {
     const button = $("#addCam"), api = window.pywebview && window.pywebview.api;
-    if (!api || !api.add_to_cam) { alert("Abra o painel dentro do vagas1000 para adicionar ao CAM."); return; }
+    if (!api || !api.add_to_cam) { camFeedback.textContent = "Abra o painel dentro do vagas1000 para adicionar ao CAM."; return; }
+    camFeedback.textContent = "";
     button.disabled = true;
     try {
       const result = await api.add_to_cam(key, j, r0);
-      if (!result.ok) { alert(result.message); return; }
-      button.textContent = result.already ? "Já está no CAM" : "Adicionada ao CAM";
+      if (!result.ok) { camFeedback.textContent = result.message; return; }
+      camAdded(result.already ? "Já está no CAM" : "Adicionada ao CAM");
       button.dataset.added = "true";
-    } catch (e) { alert("Não foi possível adicionar ao CAM. Tente novamente."); }
+      if (!result.already) camStatuses[key] = 'pending';
+      render(); liRender();
+    } catch (e) { camFeedback.textContent = "Não foi possível adicionar ao CAM. Tente novamente."; }
     finally { button.disabled = button.dataset.added === "true"; }
   };
   $("#copyLink").onclick = async () => { const u = j.url || location.href; try { await navigator.clipboard.writeText(u); $("#copyLink").lastChild.textContent = "Copiado"; } catch(e){ prompt("Copie o link:", u); } };
@@ -724,6 +743,22 @@ function route(){
     setTab(h === "#/linkedin" ? "li" : h === "#/" ? "all" : store.get("tab", "all")); if (was) window.scrollTo(0, homeScroll); }
 }
 window.addEventListener("hashchange", route); route();
+async function refreshCamStatuses(){
+  const api = window.pywebview && window.pywebview.api;
+  if (!api || !api.cam_statuses) return;
+  try {
+    const result = await api.cam_statuses();
+    if (!result.ok || !result.statuses) return;
+    if (JSON.stringify(result.statuses) !== JSON.stringify(camStatuses)) {
+      camStatuses = result.statuses;
+      render(); liRender();
+    }
+  } catch(e) { /* O painel continua utilizável se o CAM não estiver disponível. */ }
+}
+window.addEventListener('pywebviewready', refreshCamStatuses);
+window.addEventListener('focus', refreshCamStatuses);
+setInterval(() => { if (!document.hidden) refreshCamStatuses(); }, 10000);
+refreshCamStatuses();
 </script>
 </body>
 </html>
