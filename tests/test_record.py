@@ -254,6 +254,12 @@ class PanelWindowTests(unittest.TestCase):
         self.assertTrue(panel_window.embed_url(Path("C:/x/dashboard.html"), "lixo").endswith("#embed|#/"))
         self.assertNotIn("?", url)                      # query em file:// vira ERR_FILE_NOT_FOUND no WebView2
 
+    def test_template_reloads_when_the_app_asks_for_a_regenerated_panel(self):
+        """O app regenera o painel e chama load_url(arquivo#embed|rota): só o fragmento muda, então a própria página
+        precisa se recarregar, senão fica com os dados velhos e a rota `#embed|...` (aba LinkedIn vazia)."""
+        html = (Path(__file__).resolve().parent.parent / "scraper" / "templates" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn('location.hash.startsWith("#embed|")) location.reload()', html)
+
     def test_embedded_panel_reports_failure_when_webview_is_unavailable(self):
         import builtins
         from scraper import panel_window
