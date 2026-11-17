@@ -258,7 +258,14 @@ class PanelWindowTests(unittest.TestCase):
         """O app regenera o painel e chama load_url(arquivo#embed|rota): só o fragmento muda, então a própria página
         precisa se recarregar, senão fica com os dados velhos e a rota `#embed|...` (aba LinkedIn vazia)."""
         html = (Path(__file__).resolve().parent.parent / "scraper" / "templates" / "dashboard.html").read_text(encoding="utf-8")
-        self.assertIn('location.hash.startsWith("#embed|")) location.reload()', html)
+        self.assertIn('if (hashNow().startsWith("#embed|")) location.reload()', html)
+
+    def test_template_decodes_the_escaped_fragment_the_webview_delivers(self):
+        """O WebView2 passa a URL por System.Uri e o fragmento chega escapado ("#embed%7C%23/linkedin"): a página
+        precisa decodificar antes de comparar, senão o modo embutido (abas escondidas) nunca liga dentro do app."""
+        html = (Path(__file__).resolve().parent.parent / "scraper" / "templates" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn("decodeURIComponent(location.hash)", html)
+        self.assertNotIn('location.hash.startsWith("#embed|")', html)
 
     def test_embedded_panel_reports_failure_when_webview_is_unavailable(self):
         import builtins

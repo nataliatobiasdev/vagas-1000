@@ -59,6 +59,16 @@ CMD_FILE_NAME = "panel-cmd.json"
 EMBED_FAILED = 3                     # código de saída de run_embedded quando não deu para embutir (o app abre o navegador)
 
 
+def _utf8_streams() -> None:
+    """stdout/stderr redirecionados (CI, arquivo de log do filho) caem no cp1252 do Windows: o título do painel
+    ("vagas1000 · Painel") vira lixo no log e `print` do autoteste quebra com UnicodeEncodeError. Fixa UTF-8."""
+    for s in (sys.stdout, sys.stderr):
+        try:
+            s.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
 def _trace(msg: str) -> None:
     """Diagnóstico do painel embutido: vai para o stderr (o autoteste do CI recolhe e publica)."""
     try:
@@ -102,6 +112,7 @@ def run_embedded(parent: int, route: str = "#/") -> int:
     import ctypes
     from ctypes import wintypes
 
+    _utf8_streams()
     try:
         import webview
     except Exception as e:
@@ -258,6 +269,7 @@ def run_embedded_autotest() -> int:
     import tkinter as tk
     from ctypes import wintypes
 
+    _utf8_streams()
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except Exception:

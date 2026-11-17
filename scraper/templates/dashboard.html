@@ -350,13 +350,16 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
 
 <!--__RECORDS__-->
 <script>
-if (location.hash.startsWith("#embed|")) {      // aberto dentro do app: "#embed|#/linkedin" (a rota vem depois do "|")
+// O WebView2 (via System.Uri do .NET) escapa o fragmento: "#embed|#/linkedin" chega como "#embed%7C%23/linkedin".
+// Por isso o fragmento é sempre decodificado antes de comparar; sem isso o modo embutido nunca ligava no app.
+const hashNow = () => { try { return decodeURIComponent(location.hash); } catch (e) { return location.hash; } };
+if (hashNow().startsWith("#embed|")) {          // aberto dentro do app: "#embed|#/linkedin" (a rota vem depois do "|")
   document.documentElement.dataset.embed = "1";
-  history.replaceState(null, "", location.hash.slice(7) || "#/");
+  history.replaceState(null, "", hashNow().slice(7) || "#/");
 }
 // O app pede um painel regenerado (nova atualização/importação) com `load_url(arquivo#embed|<rota>)`. Como só o
 // fragmento muda, o navegador não recarrega a página; aqui ela mesma se recarrega para ler os dados novos.
-window.addEventListener("hashchange", () => { if (location.hash.startsWith("#embed|")) location.reload(); });
+window.addEventListener("hashchange", () => { if (hashNow().startsWith("#embed|")) location.reload(); });
 const DATA = /*__DATA__*/null;
 const TECH = {SALESFORCE:"Salesforce",AWS:"AWS",GO:"Go",PYTHON:"Python",TYPESCRIPT_NODE:"TypeScript/Node",ANGULAR_REACT:"Angular/React",GRAPHQL:"GraphQL",AI_GENAI:"IA/GenAI",INTEGRATION_ARCH:"Integração",JAVA:"Java",DOTNET:".NET"};
 const VERD = {ELIGIBLE:"Elegível",MAYBE:"Talvez",BLOCKED:"Bloqueada"};
