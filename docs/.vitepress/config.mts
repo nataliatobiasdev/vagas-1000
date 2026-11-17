@@ -28,7 +28,7 @@ export default withMermaid(
         { text: 'Qualidade', link: '/qualidade/relatorio', activeMatch: '/qualidade/' },
         { text: 'Versões', link: '/versionamento' },
         { text: 'Roadmap', link: '/roadmap' },
-        { text: 'v1.0', items: [{ text: 'Releases', link: `${repo}/releases` }, { text: 'Actions', link: `${repo}/actions` }] }
+        { text: 'v1.1', items: [{ text: 'Releases', link: `${repo}/releases` }, { text: 'Actions', link: `${repo}/actions` }] }
       ],
       sidebar: [
         {
@@ -37,6 +37,7 @@ export default withMermaid(
             { text: 'Produto e escopo', link: '/guia/visao' },
             { text: 'Instalação', link: '/guia/instalacao' },
             { text: 'Como usar', link: '/guia/uso' },
+            { text: 'Seu banco de vagas', link: '/guia/banco-de-vagas' },
             { text: 'Identidade visual', link: '/guia/identidade-visual' },
             { text: 'Rodar e contribuir', link: '/guia/desenvolvimento' }
           ]
@@ -95,7 +96,7 @@ export default withMermaid(
       langMenuLabel: 'Idioma',
       notFound: { title: 'Página não encontrada', quote: 'Este endereço não existe na documentação.', linkText: 'Voltar ao início' },
       footer: {
-        message: 'Documentação técnica do vagas1000 · V1.0 com o design system Nevora',
+        message: 'Documentação técnica do vagas1000 · V1.1 com o design system Nevora',
         copyright: 'Copyright © 2026 Natalia Tobias'
       }
     },

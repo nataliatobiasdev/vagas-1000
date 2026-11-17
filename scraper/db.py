@@ -6,11 +6,15 @@ Tabelas
   run_companies   resultado por empresa em cada execução (ok, quantidade, erro)
   jobs            a vaga (1 linha por vaga): dados atuais + first_run_id/last_run_id/status
   job_snapshots   nota e veredito da vaga em cada execução (histórico de mudanças)
+  job_versions    versão completa da vaga (descrição, salário, locais, payload bruto) a cada mudança de conteúdo:
+                  mesmo que a fonte edite ou apague a vaga, o que já foi visto continua guardado
 
 Regras
   * Vaga vista na execução  -> status 'open', last_run_id = execução.
   * Vaga NÃO vista, mas a empresa coletou OK com >0 vagas -> status 'closed' (encerrada).
   * Empresa com erro ou com 0 vagas capturadas NUNCA encerra vagas (evita falso "encerrada" por falha de coleta).
+  * Nada é apagado: vaga encerrada continua no banco com tudo que foi capturado (`closed_at` marca quando sumiu).
+  * Campo que a captura de hoje não trouxe (ex.: detalhe não reaberto) NÃO apaga o que já estava guardado.
 """
 from __future__ import annotations
 
@@ -57,10 +61,40 @@ CREATE TABLE IF NOT EXISTS job_snapshots (
   score REAL, verdict TEXT, title TEXT, location TEXT,
   PRIMARY KEY (run_id, job_key)
 );
+CREATE TABLE IF NOT EXISTS job_versions (
+  version_id INTEGER PRIMARY KEY AUTOINCREMENT, job_key TEXT NOT NULL REFERENCES jobs(job_key),
+  run_id INTEGER NOT NULL, seen_at TEXT NOT NULL, content_hash TEXT NOT NULL,
+  data TEXT NOT NULL, raw TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_versions_job ON job_versions(job_key, version_id);
 CREATE VIEW IF NOT EXISTS v_open_jobs AS
   SELECT * FROM jobs WHERE status = 'open' ORDER BY
     CASE verdict WHEN 'ELIGIBLE' THEN 0 WHEN 'MAYBE' THEN 1 ELSE 2 END, score DESC;
 """
+
+
+# Colunas do registro completo (schema 2). Bancos criados antes ganham as colunas na abertura: só acrescenta,
+# nunca altera nem apaga o que existe.
+JOB_COLUMNS_V2 = {
+    "team": "TEXT", "locations": "TEXT", "apply_url": "TEXT", "salary_text": "TEXT", "salary_min": "REAL",
+    "salary_max": "REAL", "salary_currency": "TEXT", "salary_period": "TEXT", "posted_at": "TEXT",
+    "updated_at_src": "TEXT", "deadline": "TEXT", "requisition_id": "TEXT", "description_html": "TEXT",
+    "sections": "TEXT", "metadata": "TEXT", "raw": "TEXT", "content_hash": "TEXT", "detail_at": "TEXT",
+    "closed_at": "TEXT", "versions": "INTEGER DEFAULT 0",
+}
+SCHEMA_VERSION = 2
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    have = {r[1] for r in conn.execute("PRAGMA table_info(jobs)")}
+    with conn:
+        for col, typ in JOB_COLUMNS_V2.items():
+            if col not in have:
+                conn.execute(f"ALTER TABLE jobs ADD COLUMN {col} {typ}")
+        # vagas encerradas antes da migração: closed_at = início da execução em que sumiram
+        conn.execute("UPDATE jobs SET closed_at=(SELECT started_at FROM runs WHERE runs.run_id=jobs.closed_run_id) "
+                     "WHERE status='closed' AND closed_at IS NULL AND closed_run_id IS NOT NULL")
+        conn.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
 
 def connect(path: Path | str | None = None) -> sqlite3.Connection:
@@ -68,7 +102,9 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA temp_store=MEMORY")      # ordenações sem arquivo temporário (%TEMP% pode estar bloqueado)
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
 
 
@@ -86,12 +122,113 @@ def sync_companies(conn: sqlite3.Connection, companies: list[dict]) -> None:
             (c["company_id"], c["name"], c.get("adapter"), c.get("board_url"), c.get("access_code"), c.get("composite_score")))
 
 
+def content_hash(j: Job) -> str:
+    """Impressão digital do que o usuário lê na vaga: muda quando a fonte edita título, texto, local ou salário."""
+    sec = [(s.get("title"), s.get("html")) for s in (j.sections or [])]
+    payload = [j.title, j.location, j.locations, j.area, j.team, j.commitment, j.workplace_type, j.description,
+               j.description_html, sec, j.salary_text, j.salary_min, j.salary_max]
+    return hashlib.sha1(json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()
+
+
+def _loads(s, default):
+    try:
+        return json.loads(s) if s else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _dumps(v) -> str:
+    return json.dumps(v, ensure_ascii=False, default=str)
+
+
+# campos de texto: o que a captura de hoje não trouxe não apaga o que já foi guardado
+KEEP_IF_EMPTY = ("description", "description_html", "apply_url", "team", "salary_text", "salary_currency", "salary_period",
+                 "posted_at", "deadline", "requisition_id", "commitment", "area", "location")
+
+
+def _merged(j: Job, old: sqlite3.Row | None) -> dict:
+    """Valores a gravar: os de `j`, completados com o que já existia quando `j` veio sem eles."""
+    v = {k: getattr(j, k) for k in KEEP_IF_EMPTY}
+    v["updated_at_src"] = j.updated_at
+    v.update(title=j.title, url=j.url, workplace_type=j.workplace_type, job_id=j.job_id)
+    v["salary_min"], v["salary_max"] = j.salary_min, j.salary_max
+    v["locations"], v["sections"] = list(j.locations or []), list(j.sections or [])
+    v["metadata"], v["raw"] = dict(j.metadata or {}), dict(j.raw or {})
+    v["detail_at"] = j.detail_at
+    if old is not None:
+        for k in KEEP_IF_EMPTY:
+            if not v[k]:
+                v[k] = old[k] or ""
+        if not v["updated_at_src"]:
+            v["updated_at_src"] = old["updated_at_src"] or ""
+        for k in ("salary_min", "salary_max"):
+            if v[k] is None:
+                v[k] = old[k]
+        for k in ("locations", "sections"):
+            if not v[k]:
+                v[k] = _loads(old[k], [])
+        v["metadata"] = {**_loads(old["metadata"], {}), **v["metadata"]}
+        v["raw"] = {**_loads(old["raw"], {}), **v["raw"]}
+        v["detail_at"] = v["detail_at"] or old["detail_at"] or ""
+    return v
+
+
+def _upsert_job(conn: sqlite3.Connection, j: Job, run_id: int, now: str) -> bool:
+    """Grava/atualiza uma vaga com o registro completo (e versão, se o conteúdo mudou). True se a vaga é nova."""
+    key = job_key(j)
+    old = conn.execute("SELECT * FROM jobs WHERE job_key=?", (key,)).fetchone()
+    v = _merged(j, old)
+    if not v["detail_at"] and (v["description_html"] or v["description"]):
+        v["detail_at"] = now
+    # o hash usa o conteúdo já mesclado: descrição não reaberta hoje não conta como "mudou"
+    merged_job = Job(company_id=j.company_id, company_name=j.company_name, source=j.source, title=j.title,
+                     location=v["location"], area=v["area"], commitment=v["commitment"],
+                     workplace_type=v["workplace_type"], description=v["description"],
+                     description_html=v["description_html"], sections=v["sections"], team=v["team"],
+                     locations=v["locations"], salary_text=v["salary_text"], salary_min=v["salary_min"],
+                     salary_max=v["salary_max"])
+    chash = content_hash(merged_job)
+    cols = (j.company_name, j.source, v["job_id"], v["title"], v["url"], v["location"], v["area"],
+            v["workplace_type"], v["commitment"], v["description"], j.score, j.verdict, _dumps(j.techs),
+            _dumps(j.reasons), v["team"], _dumps(v["locations"]), v["apply_url"], v["salary_text"],
+            v["salary_min"], v["salary_max"], v["salary_currency"], v["salary_period"], v["posted_at"],
+            v["updated_at_src"], v["deadline"], v["requisition_id"], v["description_html"],
+            _dumps(v["sections"]), _dumps(v["metadata"]), _dumps(v["raw"]), chash, v["detail_at"])
+    names = ("company_name,source,job_id,title,url,location,area,workplace_type,commitment,description,score,"
+             "verdict,techs,reasons,team,locations,apply_url,salary_text,salary_min,salary_max,salary_currency,"
+             "salary_period,posted_at,updated_at_src,deadline,requisition_id,description_html,sections,"
+             "metadata,raw,content_hash,detail_at").split(",")
+    if old is None:
+        conn.execute(
+            f"INSERT INTO jobs({','.join(names)},job_key,company_id,first_run_id,last_run_id,first_seen,last_seen,"
+            f"status,versions) VALUES({','.join('?' * len(names))},?,?,?,?,?,?,'open',0)",
+            cols + (key, j.company_id, run_id, run_id, now, now))
+    else:
+        conn.execute(
+            f"UPDATE jobs SET {','.join(n + '=?' for n in names)},last_run_id=?,last_seen=?,status='open',"
+            f"closed_run_id=NULL,closed_at=NULL WHERE job_key=?", cols + (run_id, now, key))
+    if old is None or old["content_hash"] != chash:
+        data = {k: v[k] for k in ("title", "location", "locations", "area", "team", "commitment",
+                                  "workplace_type", "description", "description_html", "sections",
+                                  "salary_text", "salary_min", "salary_max", "salary_currency",
+                                  "salary_period", "posted_at", "deadline", "requisition_id", "apply_url",
+                                  "metadata")}
+        conn.execute("INSERT INTO job_versions(job_key,run_id,seen_at,content_hash,data,raw) VALUES(?,?,?,?,?,?)",
+                     (key, run_id, now, chash, _dumps(data), _dumps(v["raw"])))
+        conn.execute("UPDATE jobs SET versions=versions+1 WHERE job_key=?", (key,))
+    conn.execute("INSERT OR REPLACE INTO job_snapshots(run_id,job_key,score,verdict,title,location) VALUES(?,?,?,?,?,?)",
+                 (run_id, key, j.score, j.verdict, j.title, j.location))
+    return old is None
+
+
 def save_run(conn: sqlite3.Connection, jobs: list[Job], status: dict[str, dict],
              companies: list[dict] | None = None, started_at: str | None = None) -> int:
     """Grava uma execução inteira numa transação. Devolve o run_id (0 = nada gravado).
 
     Execução em que TODAS as empresas falharam não é registrada: sem isso o painel mostraria uma
     "execução vazia" como se as vagas tivessem acabado. Os erros ficam no log e no JSON da execução.
+    Cada vaga guarda o registro completo; quando o conteúdo muda (texto, salário, local), a versão anterior
+    continua em `job_versions`.
     """
     if status and not any(st.get("ok") for st in status.values()):
         log.error("todas as empresas falharam: execução NÃO gravada no banco")
@@ -103,32 +240,16 @@ def save_run(conn: sqlite3.Connection, jobs: list[Job], status: dict[str, dict],
         run_id = conn.execute("INSERT INTO runs(started_at) VALUES(?)", (now,)).lastrowid
         new_count = 0
         for j in jobs:
-            key = job_key(j)
-            row = conn.execute("SELECT job_key FROM jobs WHERE job_key=?", (key,)).fetchone()
-            vals = (j.company_name, j.source, j.job_id, j.title, j.url, j.location, j.area, j.workplace_type,
-                    j.commitment, j.description, j.score, j.verdict, json.dumps(j.techs), json.dumps(j.reasons, ensure_ascii=False))
-            if row is None:
+            if _upsert_job(conn, j, run_id, now):
                 new_count += 1
-                conn.execute(
-                    "INSERT INTO jobs(company_name,source,job_id,title,url,location,area,workplace_type,commitment,description,"
-                    "score,verdict,techs,reasons,job_key,company_id,first_run_id,last_run_id,first_seen,last_seen,status) "
-                    "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'open')",
-                    vals + (key, j.company_id, run_id, run_id, now, now))
-            else:
-                conn.execute(
-                    "UPDATE jobs SET company_name=?,source=?,job_id=?,title=?,url=?,location=?,area=?,workplace_type=?,commitment=?,"
-                    "description=?,score=?,verdict=?,techs=?,reasons=?,last_run_id=?,last_seen=?,status='open',closed_run_id=NULL "
-                    "WHERE job_key=?", vals + (run_id, now, key))
-            conn.execute("INSERT OR REPLACE INTO job_snapshots(run_id,job_key,score,verdict,title,location) VALUES(?,?,?,?,?,?)",
-                         (run_id, key, j.score, j.verdict, j.title, j.location))
 
         closed_count = 0
         for cid, st in status.items():
             conn.execute("INSERT OR REPLACE INTO run_companies(run_id,company_id,ok,job_count,error) VALUES(?,?,?,?,?)",
                          (run_id, cid, 1 if st.get("ok") else 0, st.get("count", 0), st.get("error")))
             if st.get("ok") and st.get("count", 0) > 0:
-                cur = conn.execute("UPDATE jobs SET status='closed', closed_run_id=? "
-                                   "WHERE company_id=? AND status='open' AND last_run_id<>?", (run_id, cid, run_id))
+                cur = conn.execute("UPDATE jobs SET status='closed', closed_run_id=?, closed_at=? "
+                                   "WHERE company_id=? AND status='open' AND last_run_id<>?", (run_id, now, cid, run_id))
                 closed_count += cur.rowcount
             elif st.get("ok"):
                 log.warning("[%s] 0 vagas capturadas: nenhuma vaga anterior foi marcada como encerrada", cid)
@@ -138,6 +259,24 @@ def save_run(conn: sqlite3.Connection, jobs: list[Job], status: dict[str, dict],
                      (len(jobs), eligible, new_count, closed_count, run_id))
     log.info("banco: execução %d gravada (%d vagas, %d novas, %d encerradas)", run_id, len(jobs), new_count, closed_count)
     return run_id
+
+
+def load_details(conn: sqlite3.Connection, company_id: str) -> dict[str, dict]:
+    """Detalhes já guardados das vagas de uma empresa (job_key -> campos): evita reabrir páginas de detalhe
+    que já temos; o coletor só busca o que é novo ou ficou velho."""
+    out: dict[str, dict] = {}
+    for r in conn.execute("SELECT job_key, description, description_html, sections, metadata, raw, posted_at, deadline, "
+                          "requisition_id, apply_url, commitment, detail_at FROM jobs WHERE company_id=? "
+                          "AND (description_html<>'' OR length(description)>400)", (company_id,)):
+        raw = _loads(r["raw"], {})
+        out[r["job_key"]] = {
+            "description": r["description"] or "", "description_html": r["description_html"] or "",
+            "sections": _loads(r["sections"], []), "metadata": _loads(r["metadata"], {}),
+            "raw_detail": raw.get("detail"), "posted_at": r["posted_at"] or "", "deadline": r["deadline"] or "",
+            "requisition_id": r["requisition_id"] or "", "apply_url": r["apply_url"] or "",
+            "commitment": r["commitment"] or "", "detail_at": r["detail_at"] or "",
+        }
+    return out
 
 
 def import_json(conn: sqlite3.Connection, path: Path | str, companies: list[dict] | None = None) -> int:
@@ -175,3 +314,21 @@ if __name__ == "__main__":      # python -m scraper.db importar out/vagas-xxx.js
         print(rescore_all(connect(), prof), "vagas reavaliadas")
     else:
         print("uso: python -m scraper.db importar out\\vagas-AAAAMMDD-HHMMSS.json | python -m scraper.db reavaliar")
+
+
+def save_import(conn: sqlite3.Connection, jobs: list[Job], companies: list[dict] | None = None) -> dict:
+    """Grava vagas importadas de fora (LinkedIn, planilha). Diferente de `save_run`:
+
+    - não cria "execução" nem encerra vagas: o arquivo é um recorte, não uma varredura inteira;
+    - as vagas ficam ligadas à execução mais recente (ou a uma nova, se o banco ainda não tem nenhuma).
+    Devolve {"novas": n, "atualizadas": m, "run_id": id}.
+    """
+    now = datetime.now().isoformat(timespec="seconds")
+    with conn:
+        if companies:
+            sync_companies(conn, companies)
+        row = conn.execute("SELECT run_id FROM runs ORDER BY run_id DESC LIMIT 1").fetchone()
+        run_id = row[0] if row else conn.execute("INSERT INTO runs(started_at) VALUES(?)", (now,)).lastrowid
+        new = sum(1 for j in jobs if _upsert_job(conn, j, run_id, now))
+    log.info("banco: %d vagas importadas (%d novas, %d já existiam)", len(jobs), new, len(jobs) - new)
+    return {"novas": new, "atualizadas": len(jobs) - new, "run_id": run_id}

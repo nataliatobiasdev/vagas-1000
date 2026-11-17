@@ -36,6 +36,16 @@ jobs:
           foreach ($f in "out\dashboard.html", "config\companies.json", "config\profile.json") {
             if (-not (Test-Path (Join-Path $env:VAGAS1000_HOME $f))) { throw "faltou $f" }
           }
+      - name: Teste da janela do painel (WebView2) com vagas de demonstração
+        shell: pwsh
+        env:
+          VAGAS1000_HOME: ${{ runner.temp }}\v1000-demo
+        run: |
+          python scripts/seed_demo.py
+          $p = Start-Process -FilePath "dist\vagas1000\vagas1000.exe" -ArgumentList "--janela-painel","--autoteste" `
+               -Wait -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\autoteste.txt" -RedirectStandardError "$env:RUNNER_TEMP\autoteste.err"
+          Get-Content "$env:RUNNER_TEMP\autoteste.txt", "$env:RUNNER_TEMP\autoteste.err" -ErrorAction SilentlyContinue
+          if ($p.ExitCode -ne 0) { throw "autoteste da janela falhou (código $($p.ExitCode))" }
       - name: Instalador Windows (NSIS, por usuário)
         shell: bash
         run: |

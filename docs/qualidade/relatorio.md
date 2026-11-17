@@ -3,7 +3,7 @@
 Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi descobrir o que **não funciona** e como resolver. Cada item diz se foi corrigido nesta rodada ou se segue aberto.
 
 <div class="stats">
-<div><b>52</b><span>testes offline passando (47 antes, 5 novos)</span></div>
+<div><b>82</b><span>testes offline passando (47 antes, 35 novos)</span></div>
 <div><b>53 / 53</b><span>empresas sem navegador coletadas ao vivo, 0 erros</span></div>
 <div><b>1.197</b><span>vagas na coleta ao vivo, 256 elegíveis</span></div>
 <div><b>6</b><span>problemas corrigidos</span></div>
@@ -14,7 +14,7 @@ Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi desco
 
 | Teste | Resultado |
 | --- | --- |
-| Suíte offline (`unittest`, fixtures de HTML e JSON) | <span class="ok">passou</span>, 47 → 52 testes |
+| Suíte offline (`unittest`, fixtures de HTML e JSON) | <span class="ok">passou</span>, 47 → 82 testes |
 | Coleta ao vivo das 53 empresas por API (sem Chrome) | <span class="ok">passou</span>: 1.197 vagas, 256 elegíveis, 0 erros |
 | Stone (Selenium, Chrome real) | <span class="ok">passou</span> depois da correção 3: 9 vagas |
 | Janela do app aberta e inspecionada | <span class="ok">passou</span> depois da correção 1 e do novo visual |
@@ -64,7 +64,7 @@ Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi desco
 
 | | |
 | --- | --- |
-| **Sintoma** | No app instalado, `%APPDATA%agas1000\config` não existia até a primeira atualização; quem queria editar o perfil antes não achava o arquivo. Foi o **CI** que pegou: o teste de fumaça do `.exe` exigia o arquivo e falhou |
+| **Sintoma** | No app instalado, `%APPDATA%\vagas1000\config` não existia até a primeira atualização; quem queria editar o perfil antes não achava o arquivo. Foi o **CI** que pegou: o teste de fumaça do `.exe` exigia o arquivo e falhou |
 | **Correção** | `paths.ensure_config()` roda ao abrir o app e o `main`; teste `PathsTests` (copia uma vez e nunca sobrescreve suas edições) |
 
 ### 6. Resíduos de versões anteriores
@@ -73,6 +73,22 @@ Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi desco
 | --- | --- |
 | **Sintoma** | Um dicionário `COMPANY` no `app.py` com 41 das 54 empresas, sem uso; `main.py` mandando “rodar setup.bat” e dizendo “3 empresas” |
 | **Correção** | Removidos. Textos atualizados |
+
+## Segunda rodada: o painel virou banco de vagas (V1.1)
+
+Ao desenhar o banco que guarda cada vaga por inteiro, mais problemas apareceram. Todos corrigidos.
+
+| # | Problema | Efeito | Correção |
+| --- | --- | --- | --- |
+| 7 | O painel cortava a descrição em **3.000 caracteres** e só guardava texto puro | A vaga em si só dava para ver entrando no link; formatação, listas e requisitos se perdiam | Descrição completa em **HTML limpo** (sem script, estilo nem imagem) e texto puro, página completa da vaga |
+| 8 | A captura **descartava** quase tudo que a API envia: datas, salário, requisição, escritórios, etapas do processo, prazo, payload | Impossível montar um banco com o que a fonte informava | Cada fonte guarda os campos padronizados **e** o payload bruto (veja [Fontes](/arquitetura/fontes)) |
+| 9 | A atualização **sobrescrevia** a vaga: se a empresa editava o texto, o anterior sumia; se o detalhe não fosse reaberto, a descrição ficava vazia | Perda de informação a cada execução | Histórico de **versões** (`job_versions`) e regra de que captura parcial nunca apaga o que já estava guardado |
+| 10 | O Gupy só abria o detalhe das **40 primeiras vagas** de cada empresa e o Workday das 30 | Vagas além do limite ficavam sem descrição | Detalhes em cache no banco: a 1ª execução lê tudo (até 150 por empresa) e as seguintes só o que é novo ou tem mais de 7 dias |
+| 11 | `ORDER BY` em tabelas grandes falhava com “unable to open database file” em terminais com `%TEMP%` bloqueado | A exportação e consultas pesadas quebravam | `PRAGMA temp_store=MEMORY` na abertura do banco |
+| 12 | Painéis “Fontes”, “Vagas por empresa” e “Tecnologias” enormes | Rolar metros de página para chegar à lista | Painéis **recolhíveis**: resumo compacto fechado, lista rolável com busca aberto |
+| 13 | “Abrir painel” abria o navegador | O painel parecia outro programa | Janela do painel dentro do app (WebView2), com fallback para o navegador |
+
+Em aberto desta rodada: a janela do painel foi validada pelo autoteste do CI, não numa máquina limpa; e o **tamanho do banco** cresce (o registro completo pesa algumas dezenas de MB para mais de mil vagas).
 
 ## Em aberto
 
@@ -88,7 +104,7 @@ O **CI está verde**, o **site está no Pages** e a **Release v1.0.0** foi publi
 
 O que ainda não foi feito é **instalar o `.exe` do instalador numa máquina limpa** e abrir o app (o CI testa o executável empacotado, não o assistente de instalação).
 
-**Como resolver:** baixe em [Releases](https://github.com/nataliatobiasdev/vagas-1000/releases), instale e confira atalhos, abertura e desinstalação (que deve manter `%APPDATA%agas1000`).
+**Como resolver:** baixe em [Releases](https://github.com/nataliatobiasdev/vagas-1000/releases), instale e confira atalhos, abertura e desinstalação (que deve manter `%APPDATA%\vagas1000`).
 
 ### A3. LinkedIn só testado offline
 

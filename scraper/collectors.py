@@ -7,9 +7,10 @@ import random
 import re
 import time
 import urllib.request
+from datetime import datetime, timedelta
 from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
 
-from . import parsers
+from . import db, parsers
 from .driver import session_alive
 from .models import Job
 
@@ -57,12 +58,8 @@ def _enrich(driver, jobs: list[Job], detail_parser, selector: str, max_details: 
         try:
             driver.get(j.url)
             _wait(driver, selector, 15)
-            data = detail_parser(driver.page_source)
-            for k, v in data.items():
-                if v and not getattr(j, k, ""):
-                    setattr(j, k, v)
-                elif k == "description":
-                    j.description = v
+            parsers.apply_detail(j, detail_parser(driver.page_source))
+            j.detail_at = _now()
         except Exception as e:                      # detalhe é opcional: não derruba a coleta
             if not session_alive(driver):           # ...mas se a janela/Chrome morreu, a empresa falha
                 raise                               # e o runner recria o driver e tenta de novo
@@ -188,7 +185,54 @@ def _get_text(url: str, attempts: int = 2) -> str:
     raise last
 
 
-def collect_gupy(driver, cfg: dict, max_details: int = 40) -> list[Job]:
+def _now() -> str:
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _detail_fresh(detail_at: str, days: float) -> bool:
+    """O detalhe guardado ainda vale? (lido há menos de `days` dias)"""
+    try:
+        return datetime.now() - datetime.fromisoformat(detail_at) < timedelta(days=days)
+    except (TypeError, ValueError):
+        return False
+
+
+def _fetch_details(jobs: list[Job], cfg: dict, fetch, max_new: int, pause: tuple[float, float], label: str) -> None:
+    """Completa as vagas com o detalhe, reaproveitando o que o banco já tem.
+
+    - Detalhe guardado há menos de `detail_refresh_days` (7): reutiliza, sem tocar na rede.
+    - Novo ou velho: busca, no máximo `max_new` por execução (as demais ficam para a próxima, sem perder o que já havia).
+    Assim a primeira execução guarda tudo e as seguintes só abrem o que mudou ou é novo.
+    """
+    known = cfg.get("_known") or {}
+    days = float(cfg.get("detail_refresh_days", 7))
+    fetched = 0
+    for j in jobs:
+        cached = known.get(db.job_key(j))
+        if cached and _detail_fresh(cached.get("detail_at", ""), days):
+            parsers.apply_detail(j, cached)
+            j.detail_at = cached["detail_at"]
+            continue
+        if fetched >= max_new or not j.url:
+            if cached:                                   # sem orçamento agora: mantém o guardado, mesmo velho
+                parsers.apply_detail(j, cached)
+                j.detail_at = cached.get("detail_at", "")
+            continue
+        try:
+            parsers.apply_detail(j, fetch(j))
+            j.detail_at = _now()
+        except Exception as e:
+            log.warning("detalhe %s falhou %s: %s", label, j.url, e)
+            if cached:
+                parsers.apply_detail(j, cached)
+                j.detail_at = cached.get("detail_at", "")
+        fetched += 1
+        _pause(*pause)                                   # cortesia entre páginas de detalhe
+    if fetched:
+        log.info("[%s] %d detalhes novos/atualizados (resto reaproveitado do banco)", cfg["company_id"], fetched)
+
+
+def collect_gupy(driver, cfg: dict, max_details: int = 150) -> list[Job]:
     """Gupy: o portal entrega a lista de vagas no __NEXT_DATA__ (SSR) — sem Selenium.
 
     A descrição exige abrir /jobs/{id}; fazemos isso só para as vagas que passaram nos filtros.
@@ -200,16 +244,8 @@ def collect_gupy(driver, cfg: dict, max_details: int = 40) -> list[Job]:
     log.info("[%s] %d vagas no portal", cfg["company_id"], len(jobs))
     jobs = _post_process(jobs, cfg)
     if cfg.get("fetch_details", True):
-        for j in jobs[:max_details]:
-            if not j.url:
-                continue
-            try:
-                detail = parsers.parse_gupy_detail(_get_text(j.url))
-                if detail.get("description"):
-                    j.description = detail["description"]
-            except Exception as e:
-                log.warning("detalhe Gupy falhou %s: %s", j.url, e)
-            _pause(0.4, 0.9)              # cortesia entre páginas de detalhe
+        _fetch_details(jobs, cfg, lambda j: parsers.parse_gupy_detail(_get_text(j.url)), max_details,
+                       (0.4, 0.9), "Gupy")
     return jobs
 
 
@@ -260,17 +296,9 @@ def collect_workday(driver, cfg: dict, max_details: int = 30) -> list[Job]:
     log.info("[%s] %d vagas no Workday", cfg["company_id"], len(jobs))
     jobs = _post_process(jobs, cfg)
     if cfg.get("fetch_details", True):
-        for j in jobs[:max_details]:
-            if not (j.job_id or "").startswith("/"):
-                continue
-            try:
-                detail = parsers.parse_workday_detail(
-                    _get_json(f"{base}/wday/cxs/{tenant}/{site}{j.job_id}", attempts=3))
-                if detail.get("description"):
-                    j.description = detail["description"]
-            except Exception as e:
-                log.warning("detalhe Workday falhou %s: %s", j.url, e)
-            _pause(3.0, 5.0)
+        wd = [j for j in jobs if (j.job_id or "").startswith("/")]
+        _fetch_details(wd, cfg, lambda j: parsers.parse_workday_detail(
+            _get_json(f"{base}/wday/cxs/{tenant}/{site}{j.job_id}", attempts=3)), max_details, (3.0, 5.0), "Workday")
     return jobs
 
 
@@ -324,7 +352,7 @@ def collect_greenhouse_api(driver, cfg: dict, max_details: int = 120) -> list[Jo
     """
     base = cfg.get("api_base", "https://boards-api.greenhouse.io")
     token = cfg.get("board_token") or cfg["board_url"].rstrip("/").split("/")[-1]
-    url = f"{base}/v1/boards/{token}/jobs?content=true"
+    url = f"{base}/v1/boards/{token}/jobs?content=true&pay_transparency=true"
     log.info("[%s] API %s", cfg["company_id"], url)
     payload = _get_json(url)
     jobs = _post_process(parsers.parse_greenhouse_api(payload, cfg["company_id"], cfg["name"]), cfg)

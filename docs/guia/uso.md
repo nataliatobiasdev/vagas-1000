@@ -11,18 +11,24 @@
 | **Abrir painel** | Abre `out/dashboard.html` no navegador |
 | **Abrir presenciais** | Abre o relatório de vagas presenciais por estado |
 | **Abrir pasta** | Abre a pasta de dados |
+| **Importar vagas** | Traz vagas captadas fora do app (LinkedIn, planilha) para o banco: veja [Seu banco de vagas](/guia/banco-de-vagas#trazer-vagas-de-fora-linkedin-planilha) |
 | Barra inferior | Empresa em extração, progresso (“12 de 54”), tempo e erros, ao vivo |
 
 A atualização leva alguns minutos. A maior parte do tempo é a Salesforce (Workday limita a velocidade) e a Stone (navegador). O app acompanha também uma execução iniciada pela linha de comando, lendo `out/status.json`.
 
 ## O painel
 
-Filtros que importam no dia a dia:
+**Abrir painel** abre o painel numa janela do próprio vagas1000 (sem o Chrome). Se o WebView2 do Windows não estiver disponível, ele abre no navegador padrão, e o conteúdo é o mesmo.
 
-- **Só elegíveis** + **Só internacionais**: vagas fora do Brasil em que você *pode* aplicar (remoto LATAM ou mundial).
-- **Só novas**: o que apareceu desde a execução anterior.
-- Nota mínima, empresa, modalidade (remoto, híbrido, presencial) e tecnologia.
-- Clique numa linha para ver os motivos da nota e a descrição.
+No topo ficam os números e **três painéis que recolhem e expandem** (a escolha fica guardada):
+
+| Painel | Recolhido | Expandido |
+| --- | --- | --- |
+| **Fontes na última execução** | Quantas empresas com vagas, sem vagas ou com erro, e uma fileira de quadradinhos (um por empresa) | Lista rolável com filtro por nome e por “com erro” ou “sem vagas” |
+| **Vagas por empresa e veredito** | Distribuição geral e as 4 maiores empresas | Todas as empresas, com busca e ordenação; clicar numa empresa filtra a lista |
+| **Tecnologias nas vagas elegíveis** | As 6 principais | Todas, com “elegíveis/abertas”; clicar numa tecnologia filtra a lista |
+
+Abaixo, a lista de vagas em **cards** (ou tabela), com filtros: **só elegíveis** e **só internacionais** (vagas fora do Brasil em que você *pode* aplicar), **só novas**, nota mínima, empresa, modalidade, tecnologia e busca (inclusive na descrição). Clique numa vaga para abrir a **página completa**: veja [Seu banco de vagas](/guia/banco-de-vagas).
 
 | Veredito | Significado |
 | --- | --- |
@@ -40,6 +46,8 @@ run.bat --only ciandt stone     # só algumas empresas
 run.bat --painel                # só regenera o painel a partir do banco
 run.bat --reavaliar             # reaplica o profile.json às vagas já salvas
 run.bat --show --only stone     # com a janela do Chrome visível (depurar)
+run.bat --exportar              # banco inteiro em out/banco-vagas.json
+run.bat --importar captura.json # vagas de fora (LinkedIn, planilha) para o banco
 ```
 
 No app instalado o equivalente é `vagas1000.exe --scrape ...` (por exemplo `--scrape --painel`).

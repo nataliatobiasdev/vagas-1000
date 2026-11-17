@@ -1,6 +1,6 @@
 # Testes
 
-`python -m unittest discover -s tests` roda **52 testes em ~1 segundo**, sem rede e sem Chrome.
+`python -m unittest discover -s tests` roda **82 testes em poucos segundos**, sem rede e sem Chrome.
 
 | Arquivo | Testes | O que cobre |
 | --- | --- | --- |
@@ -9,6 +9,9 @@
 | `tests/test_runner.py` | 9 | Sessão do Chrome que morre (retentativa), Chrome sob demanda, falta de Chrome, regressão da janela, criação da configuração |
 | `tests/test_collectors.py` | 4 | Filtros por empresa (título, local, deduplicação) |
 | `tests/test_config.py` | 2 | `companies.json` e `profile.json` válidos |
+| `tests/test_importer.py` | 6 | Importação de vagas de fora: colunas em português e inglês, CSV, Markdown, datas relativas, salário × benefícios, idempotência |
+| `tests/test_gfx.py` | 6 | Superfícies arredondadas, cache, ícones, cápsulas e fundo da janela |
+| `tests/test_record.py` | 18 | Registro completo por fonte, HTML limpo (sem script nem imagem), migração, versões, cache de detalhes, painel e janela do painel |
 
 ## O que cada camada garante
 

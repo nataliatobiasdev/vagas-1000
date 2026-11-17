@@ -15,11 +15,12 @@ import subprocess
 import sys
 import time
 import tkinter as tk
+import threading
 import tkinter.font as tkfont
 import urllib.request
 from datetime import datetime
 from pathlib import Path
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 
 from scraper import gfx, paths
 from scraper.theme import (ACCENT, ACCENT_FG, BG, BORDER, DANGER, FIELD, FG, FONT_BODY, FONT_BODY_SB,
@@ -233,6 +234,7 @@ class Vagas1000App:
             self.buttons.append(CBtn(self, "lir", "Relatório LinkedIn", self.open_linkedin_report, icon="briefcase"))
         self.buttons.append(CBtn(self, "pres", "Abrir presenciais", self.open_presenciais, icon="pin"))
         self.buttons.append(CBtn(self, "dir", "Abrir pasta", self.open_folder, icon="folder"))
+        self.buttons.append(CBtn(self, "imp", "Importar vagas", self.import_jobs, icon="upload"))
         self.log = tk.Text(c, bg=FIELD, fg=MUTED, bd=0, wrap="none", font=FONT_MONO(9), state="disabled",
                            padx=4, pady=2, insertbackground=ACCENT, selectbackground=tint(ACCENT, 0.3, FIELD),
                            highlightthickness=0, cursor="arrow")
@@ -299,18 +301,21 @@ class Vagas1000App:
         # --- botões
         by = top + card_h + u(20)
         bh_small, bh_big = u(40), u(46)
-        bx = M
+        bx, row = M, 0
         for b in self.buttons:
             h = bh_big if b.big else bh_small
             w = b.width(u)
-            y = by + (bh_big - h) // 2
+            if bx + w > W - M and bx > M:                  # não cabe na linha: desce (janela estreita ou muitos botões)
+                bx, row = M, row + 1
+            y = by + row * (bh_big + u(12)) + (bh_big - h) // 2
             b.build(scene, bx, y, w, h, u)
             bx += w + u(10)
+        by_end = by + (row + 1) * bh_big + row * u(12)
 
         # --- área do log (campo arredondado) e card do player
         player_h = u(108)
         player_y = H - u(22) - player_h
-        log_y = by + bh_big + u(20)
+        log_y = by_end + u(20)
         log_h = max(player_y - u(18) - log_y, u(60))
         scene.alpha_composite(gfx.surface(W - 2 * M, log_h, u(16), FIELD, BORDER, highlight=0.03),
                               (M, log_y))
@@ -423,7 +428,7 @@ class Vagas1000App:
             con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
             open_jobs = con.execute("select count(*) from jobs where status='open'").fetchone()[0]
             eligible = con.execute("select count(*) from jobs where status='open' and verdict='ELIGIBLE'").fetchone()[0]
-            companies = con.execute("select count(*) from companies").fetchone()[0]
+            companies = con.execute("select count(*) from companies where coalesce(adapter,'')<>'importado'").fetchone()[0]
             last = con.execute("select started_at,total,new_count from runs order by run_id desc limit 1").fetchone()
             con.close()
             self.cards["open"].config(text=f"{open_jobs:,}".replace(",", "."))
@@ -432,7 +437,7 @@ class Vagas1000App:
             if last and last[0]:
                 dt = _parse(last[0])
                 quando = dt.strftime("%d/%m %H:%M") if dt else last[0]
-                self.sub.config(text=f"base local · última execução {quando} · {last[1]} vagas")
+                self.sub.config(text=f"base local · última atualização {quando} · {open_jobs:,} vagas abertas".replace(",", "."))
         except Exception as e:
             self.sub.config(text=f"base local · banco indisponível ({type(e).__name__})")
 
@@ -622,6 +627,27 @@ class Vagas1000App:
             self.badge.config(text="", fg=MUTED)
         self.time.config(text="")
 
+    def import_jobs(self):
+        """Importa vagas de um arquivo (JSON, CSV, Markdown): a captura do LinkedIn, uma planilha..."""
+        start = paths.HOME / "imports"
+        path = filedialog.askopenfilename(
+            title="Importar vagas", initialdir=str(start if start.exists() else paths.HOME),
+            filetypes=[("Vagas (JSON, CSV, Markdown)", "*.json *.csv *.tsv *.md *.markdown"), ("Todos os arquivos", "*.*")])
+        if not path:
+            return
+        self._append_log(f"Importando {Path(path).name}…")
+        threading.Thread(target=self._do_import, args=(path,), daemon=True).start()
+
+    def _do_import(self, path: str):
+        from scraper import importer
+        try:
+            res = importer.run_import(path)
+            msg = (f"Importadas {res['lidas']} vagas ({res['fonte']}): {res['novas']} novas, "
+                   f"{res['atualizadas']} já existiam. Abra o painel para ver.")
+        except Exception as e:
+            msg = f"Não consegui importar: {e}"
+        self.root.after(0, lambda: (self._append_log(msg), self._load_stats()))
+
     def open_linkedin_report(self):
         if LI_REPORT.exists():
             os.startfile(LI_REPORT)  # noqa: S606
@@ -629,11 +655,21 @@ class Vagas1000App:
             self._append_log("Relatório do LinkedIn ainda não existe — rode 'Buscar no LinkedIn'.")
 
     def open_dashboard(self):
+        """Abre o painel numa janela do app (WebView2). Se não der, cai no navegador padrão."""
         p = OUT / "dashboard.html"
-        if p.exists():
-            os.startfile(p)  # noqa: S606
-        else:
+        if not p.exists():
             self._append_log("Painel ainda não existe — rode uma atualização.")
+            return
+        if getattr(self, "panel_proc", None) and self.panel_proc.poll() is None:
+            self._append_log("O painel já está aberto (veja a janela “vagas1000 · Painel”).")
+            return
+        try:
+            cmd = [sys.executable] if paths.FROZEN else [sys.executable, str(Path(__file__).resolve())]
+            self.panel_proc = subprocess.Popen(cmd + ["--janela-painel"], cwd=str(ROOT),
+                                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        except Exception as e:
+            self._append_log(f"Não consegui abrir a janela do painel ({type(e).__name__}); abrindo no navegador.")
+            os.startfile(p)  # noqa: S606
 
     def open_presenciais(self):
         p = OUT / "presenciais.md"
@@ -795,6 +831,9 @@ def main():
         import main as cli
         cli.main(sys.argv[1:])
         return
+    if "--janela-painel" in sys.argv:   # painel em janela própria (WebView2); --autoteste: abre, confere e fecha
+        from scraper import panel_window
+        raise SystemExit(panel_window.run(autotest="--autoteste" in sys.argv))
     load_fonts()
     paths.ensure_config()              # o perfil editável já existe antes da 1ª atualização
     try:

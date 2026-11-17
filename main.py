@@ -7,6 +7,8 @@ Uso:
     python main.py --painel              # só regenera o painel a partir do banco (sem capturar)
     python main.py --reavaliar           # reaplica o profile.json às vagas já no banco e regenera o painel
     python main.py --no-open             # não abre o painel no navegador ao final
+    python main.py --exportar [arquivo]  # exporta o banco inteiro (vagas + versões + payload bruto) para JSON
+    python main.py --importar arquivo    # importa vagas de fora (LinkedIn, planilha): JSON, CSV ou tabela Markdown
 """
 import argparse
 import logging
@@ -41,9 +43,32 @@ def main(argv=None):
     ap.add_argument("--painel", action="store_true", help="só regenera out/dashboard.html a partir do banco")
     ap.add_argument("--reavaliar", action="store_true", help="reavalia vagas do banco com o profile.json atual")
     ap.add_argument("--no-open", action="store_true", help="não abre o painel ao final")
+    ap.add_argument("--importar", metavar="ARQUIVO",
+                    help="importa vagas de um arquivo (JSON, CSV ou tabela Markdown), como a captura do LinkedIn")
+    ap.add_argument("--fonte", help="rótulo da fonte ao importar (padrão: o que o arquivo diz, ou linkedin)")
+    ap.add_argument("--exportar", nargs="?", const="", metavar="ARQUIVO",
+                    help="exporta todas as vagas guardadas (com versões e payload bruto) para JSON; padrão out/banco-vagas.json")
     args = ap.parse_args(argv)
     setup_logging()
     paths.ensure_config()          # copia config/*.json do pacote para a pasta de dados (editável) na 1ª execução
+
+    if args.importar:
+        from scraper import importer
+        try:
+            res = importer.run_import(args.importar, args.fonte)
+        except (ValueError, OSError) as e:
+            print(f"Não consegui importar: {e}")
+            raise SystemExit(1)
+        print(f"{res['lidas']} vagas lidas ({res['fonte']}): {res['novas']} novas, {res['atualizadas']} já existiam.")
+        print(f"Painel: {res['painel']}")
+        return
+
+    if args.exportar is not None:
+        conn = db.connect()
+        dest = reports.export_archive(conn, args.exportar or paths.OUT / "banco-vagas.json")
+        conn.close()
+        print(f"Banco exportado: {dest}")
+        return
 
     if args.painel or args.reavaliar:
         import json

@@ -32,3 +32,7 @@ installer/version_info.txt
 docs/node_modules/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+
+# capturas importadas (contem anotacoes pessoais; ficam so na sua maquina)
+imports/
+data/*.bak*

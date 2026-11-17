@@ -16,6 +16,20 @@ from .models import Job
 log = logging.getLogger("scraper")
 ROOT = paths.HOME
 NEEDS_BROWSER = {"stone_portal", "lever", "greenhouse"}   # adaptadores que dependem do Chrome
+DETAIL_CACHED = {"gupy", "workday"}                       # adaptadores que reabrem 1 página por vaga
+
+
+def _known_details(company_id: str) -> dict:
+    """Detalhes já gravados das vagas da empresa (vazio se o banco não existe ou falha: nunca derruba a coleta)."""
+    try:
+        conn = db.connect()
+        try:
+            return db.load_details(conn, company_id)
+        finally:
+            conn.close()
+    except Exception as e:
+        log.warning("[%s] sem cache de detalhes (%s): vai reabrir as páginas", company_id, e)
+        return {}
 
 CSV_FIELDS = ["company_name", "title", "verdict", "score", "location", "workplace_type", "area",
               "techs", "url", "source", "captured_at", "reasons"]
@@ -74,6 +88,8 @@ def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
             progress["current"] = {"company_id": c["company_id"], "name": c["name"]}
             write_status(out_dir, **progress)
             t0 = time.perf_counter()
+            if c["adapter"] in DETAIL_CACHED:        # detalhes já guardados no banco: só abre o que é novo ou velho
+                c = {**c, "_known": _known_details(c["company_id"])}
             if c["adapter"] in NEEDS_BROWSER and drivers[-1] is None and driver_factory is not None:
                 try:                       # Chrome sob demanda: só abre se alguma empresa precisar dele
                     drivers.append(driver_factory())
@@ -158,7 +174,7 @@ def cleanup_outputs(out_dir: Path, keep: int = 60) -> None:
 def write_outputs(jobs: list[Job], status: dict, out_dir: Path) -> None:
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     payload = {"generated_at": datetime.now().isoformat(timespec="seconds"),
-               "status": status, "total": len(jobs), "jobs": [j.to_dict() for j in jobs]}
+               "status": status, "total": len(jobs), "jobs": [j.to_dict(full=False) for j in jobs]}
     for name in (f"vagas-{stamp}.json", "vagas-latest.json"):
         (out_dir / name).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     for name in (f"vagas-{stamp}.csv", "vagas-latest.csv"):

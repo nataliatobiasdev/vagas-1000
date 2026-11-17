@@ -13,6 +13,23 @@
 
 Existem ainda os adaptadores `lever` e `greenhouse` (HTML via Selenium), mantidos como alternativa; nenhuma empresa os usa hoje.
 
+## O que cada fonte entrega
+
+Todas as fontes guardam o payload original em `raw`. Os campos padronizados dependem do que a fonte publica:
+
+| Campo | Greenhouse | Lever | Ashby | Gupy | Workday |
+| --- | --- | --- | --- | --- | --- |
+| Data de publicação | `first_published` | `createdAt` | `publishedAt` | `publishedAt` | `startDate` |
+| Última edição | `updated_at` | — | — | — | — |
+| Prazo de inscrição | `application_deadline` | — | — | `expiresAt` | — |
+| Faixa salarial | `pay_input_ranges` | `salaryRange` | `compensation` | — | — |
+| Vários locais | escritórios | `allLocations` | `secondaryLocations` | — | `additionalLocations` |
+| Requisição | `requisition_id` | — | — | `code` | `jobReqId` |
+| Seções | — | listas (requisitos…) | — | requisitos, responsabilidades, **etapas do processo** | — |
+| Descrição em HTML | `content` | `description` | `descriptionHtml` | `description` | `jobDescription` |
+
+A Stone (Selenium) traz título, local, área e a descrição do detalhe.
+
 ## Filtros por empresa
 
 Boards globais têm centenas de vagas fora do seu alcance. Cada empresa pode declarar:
