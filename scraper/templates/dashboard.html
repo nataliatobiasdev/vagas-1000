@@ -27,10 +27,10 @@
     color-scheme: light;
     --surface:#F6F7FC; --surface-2:#FFFFFF; --raised:#EEF0F8; --field:#FAFBFF;
     --border:#DDE1EE; --border-strong:#878EA6; --grid:#EEF0F8;
-    --ink:#0B0E19; --ink-2:#525C78; --ink-3:#6B7491;
-    --accent:#6C5CE7; --accent-fg:#FFFFFF; --accent-soft:#E6E2FD; --teal:#0D8A83;
+    --ink:#0B0E19; --ink-2:#525C78; --ink-3:#5F6985;
+    --accent:#6C5CE7; --accent-fg:#FFFFFF; --accent-soft:#E6E2FD; --teal:#0A7A74;
     --ok:#128058; --warn:#9C6008; --danger:#CD2D50;
-    --v-elig:#6C5CE7; --v-maybe:#0D8A83; --v-block:#C9CDDD;
+    --v-elig:#6C5CE7; --v-maybe:#0A7A74; --v-block:#C9CDDD;
     --bar:#6C5CE7; --hl:rgba(255,255,255,.9); --shadow:rgba(11,14,25,.08); --atmos:none;
   }
 }
@@ -38,10 +38,10 @@
   color-scheme: light;
   --surface:#F6F7FC; --surface-2:#FFFFFF; --raised:#EEF0F8; --field:#FAFBFF;
   --border:#DDE1EE; --border-strong:#878EA6; --grid:#EEF0F8;
-  --ink:#0B0E19; --ink-2:#525C78; --ink-3:#6B7491;
-  --accent:#6C5CE7; --accent-fg:#FFFFFF; --accent-soft:#E6E2FD; --teal:#0D8A83;
+  --ink:#0B0E19; --ink-2:#525C78; --ink-3:#5F6985;
+  --accent:#6C5CE7; --accent-fg:#FFFFFF; --accent-soft:#E6E2FD; --teal:#0A7A74;
   --ok:#128058; --warn:#9C6008; --danger:#CD2D50;
-  --v-elig:#6C5CE7; --v-maybe:#0D8A83; --v-block:#C9CDDD;
+  --v-elig:#6C5CE7; --v-maybe:#0A7A74; --v-block:#C9CDDD;
   --bar:#6C5CE7; --hl:rgba(255,255,255,.9); --shadow:rgba(11,14,25,.08); --atmos:none;
 }
 *{box-sizing:border-box}
@@ -79,7 +79,10 @@ h1{font-size:22px;margin:0;font-weight:500;letter-spacing:-.01em}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
 .kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:13px 16px;box-shadow:inset 0 1px 0 var(--hl),0 2px 8px -2px var(--shadow)}
 .kpi b{display:block;font-size:26px;font-weight:500;line-height:1.15;font-variant-numeric:tabular-nums}
-.kpi span{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;font-size:11px;color:var(--ink-2)}
+.kpi span{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;font-size:12px;color:var(--ink-2)}
+.kpi.hot{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 10%,var(--surface-2)),var(--surface-2))}
+.kpi.hot b{color:var(--accent)}
+.kpi-meta{margin:-6px 2px 14px;color:var(--ink-2);font-size:13px}
 
 /* ---------- painéis recolhíveis ---------- */
 /* Recolhidos, os três painéis são uma linha só (título + resumo) lado a lado; aberto, o painel ocupa a linha inteira. */
@@ -89,10 +92,10 @@ h1{font-size:22px;margin:0;font-weight:500;letter-spacing:-.01em}
 .panel{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:inset 0 1px 0 var(--hl),0 1px 4px -1px var(--shadow);overflow:hidden}
 .panel-h{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;cursor:pointer;min-height:42px}
 .panel-h:hover{background:color-mix(in srgb,var(--raised) 55%,transparent)}
-.panel-h h2{font-size:11.5px;font-weight:500;margin:0;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);white-space:nowrap}
-.panel-h .sum{margin-left:auto;color:var(--ink-2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.panel-h h2{font-size:12px;font-weight:500;margin:0;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);white-space:nowrap}
+.panel-h .sum{margin-left:auto;color:var(--ink);font-weight:500;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .panel-h .mini{display:flex;width:54px;height:6px;border-radius:999px;overflow:hidden;gap:1px;flex:none;background:var(--field)}
-.panel-h .chev{transition:transform .2s;color:var(--ink-3);flex:none}
+.panel-h .chev{transition:transform .2s;color:var(--ink-2);flex:none;width:18px;height:18px}
 .panel[data-open="true"] .chev{transform:rotate(180deg)}
 .panel-b{padding:2px 14px 14px}
 .full{display:flex;flex-direction:column;gap:10px}
@@ -133,17 +136,26 @@ button.pill{cursor:pointer} button.pill:hover{border-color:var(--ink-3)}
 .tabs button{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 14px;color:var(--ink-2);font-weight:500;display:inline-flex;align-items:center;gap:8px;border-bottom:2px solid transparent;margin-bottom:-1px;border-radius:8px 8px 0 0}
 .tabs button:hover{color:var(--ink);background:color-mix(in srgb,var(--raised) 55%,transparent)}
 .tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
-.tabs .n{font-family:var(--font-mono);font-size:11.5px;background:var(--field);border:1px solid var(--border);border-radius:999px;padding:0 8px;color:var(--ink-2)}
+.tabs .n{font-family:var(--font-mono);font-size:12px;background:var(--field);border:1px solid var(--border);border-radius:999px;padding:0 8px;color:var(--ink-2)}
 :root[data-embed="1"] .tabs{display:none}                 /* dentro do app, as abas ficam na janela principal */
 .li-note{color:var(--ink-2);font-size:13px;margin:0 0 12px}
-.li-table td.obs{min-width:200px;color:var(--ink-2);font-size:13px} .li-table td.stack{min-width:260px;max-width:380px;color:var(--ink-2);font-size:12.5px}
-.li-table td.ttl{min-width:220px} .li-table td.ttl b{font-weight:600} .li-table td.ttl div{color:var(--ink-3);font-size:12.5px}
+.li-table td.ttl{min-width:240px;max-width:460px} .li-table td.ttl b{font-weight:600} .li-table td.ttl div{color:var(--ink-3);font-size:12.5px}
+.li-table td.ttl .obs1{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* observação em uma linha só; o resto na página da vaga */
 .li-table td{font-size:13.5px}
 
 /* ---------- filtros ---------- */
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 10px}
 .filters input[type=search]{min-width:230px}
 .filters label{display:inline-flex;align-items:center;gap:8px;color:var(--ink-2);font-size:13px;min-height:32px;cursor:pointer}
+/* barra fixa no topo ao rolar a lista; os filtros avançados abrem num popover para não empurrar os cards */
+.fbar{position:sticky;top:0;z-index:6;background:var(--surface);padding:8px 0 2px;margin:0 0 6px}
+.fbar .filters{margin:0 0 6px}
+.fbar .btn .n{font-family:var(--font-mono);font-size:12px;background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:0 7px;font-weight:600}
+.adv{position:absolute;left:0;top:calc(100% - 4px);z-index:7;width:min(600px,100%);display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 14px;align-items:center;
+  background:var(--surface-2);border:1px solid var(--border-strong);border-radius:var(--r-md);padding:14px;box-shadow:0 14px 34px -8px var(--shadow)}
+.adv select{width:100%}
+.adv .rng{gap:10px} .adv .rng input{flex:1;min-width:80px}
+.adv .btn{justify-self:start}
 .techs{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 12px}
 .tg{border:1px solid var(--border-strong);background:var(--field);border-radius:999px;padding:3px 12px;min-height:32px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .tg[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
@@ -183,7 +195,7 @@ button.pill{cursor:pointer} button.pill:hover{border-color:var(--ink-3)}
 .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface-2);box-shadow:inset 0 1px 0 var(--hl)}
 table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--grid);vertical-align:top}
-th{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;font-size:11px;color:var(--ink-2);font-weight:500;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface-2)}
+th{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;font-size:12px;color:var(--ink-2);font-weight:500;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface-2)}
 th[aria-sort=ascending]::after{content:" ▲"} th[aria-sort=descending]::after{content:" ▼"}
 tr.row{cursor:pointer} tr.row:hover td{background:var(--raised)}
 td.sc{white-space:nowrap;font-variant-numeric:tabular-nums;width:92px}
@@ -246,6 +258,7 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
 
   <div id="tabAll">
   <section class="kpis" id="kpis"></section>
+  <p class="kpi-meta" id="kpiMeta"></p>
 
   <section class="panels">
     <div class="panel" id="pSources" data-open="false">
@@ -281,22 +294,28 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
   </section>
 
   <section id="listSec">
-    <div class="filters">
-      <input type="search" id="q" placeholder="Buscar título, empresa, local…" aria-label="Buscar">
-      <label><input type="checkbox" id="fDesc"> incluir descrição</label>
-      <select id="fCompany" aria-label="Empresa"></select>
-      <select id="fVerdict" aria-label="Veredito"><option value="EM">Elegíveis + Talvez</option><option value="E">Só elegíveis</option><option value="ALL">Todas</option></select>
-      <select id="fWork" aria-label="Modalidade"><option value="">Qualquer modalidade</option><option value="remote">Remoto</option><option value="hybrid">Híbrido</option><option value="onsite">Presencial</option></select>
-      <label>Nota ≥ <input type="range" id="fScore" min="0" max="100" step="5" value="0"> <b id="fScoreV">0</b></label>
-      <label><input type="checkbox" id="fNew"> Só novas</label>
-      <label><input type="checkbox" id="fIntl"> Só internacionais</label>
-      <label><input type="checkbox" id="fClosed"> Mostrar encerradas</label>
-      <span class="sub" id="count"></span>
-      <span style="flex:1"></span>
-      <select id="fSort" aria-label="Ordenar"><option value="score">Maior nota</option><option value="recent">Mais recentes</option><option value="posted">Publicação</option><option value="company">Empresa</option></select>
-      <div class="seg" id="viewSeg"><button type="button" data-v="cards" aria-pressed="true"><svg class="i"><use href="#i-grid"/></svg>Cards</button><button type="button" data-v="table" aria-pressed="false"><svg class="i"><use href="#i-list"/></svg>Tabela</button></div>
+    <div class="fbar">
+      <div class="filters main">
+        <input type="search" id="q" placeholder="Buscar título, empresa, local…" aria-label="Buscar">
+        <select id="fVerdict" aria-label="Veredito"><option value="EM">Elegíveis + Talvez</option><option value="E">Só elegíveis</option><option value="ALL">Todas</option></select>
+        <button class="btn" id="advBtn" type="button" aria-expanded="false" aria-controls="adv"><svg class="i"><use href="#i-filter"/></svg>Filtros <span class="n" id="advN" hidden></span></button>
+        <span class="sub" id="count"></span>
+        <span style="flex:1"></span>
+        <select id="fSort" aria-label="Ordenar"><option value="score">Maior nota</option><option value="recent">Mais recentes</option><option value="posted">Publicação</option><option value="company">Empresa</option></select>
+        <div class="seg" id="viewSeg"><button type="button" data-v="cards" aria-pressed="true"><svg class="i"><use href="#i-grid"/></svg>Cards</button><button type="button" data-v="table" aria-pressed="false"><svg class="i"><use href="#i-list"/></svg>Tabela</button></div>
+      </div>
+      <div class="adv" id="adv" hidden role="group" aria-label="Filtros avançados">
+        <select id="fCompany" aria-label="Empresa"></select>
+        <select id="fWork" aria-label="Modalidade"><option value="">Qualquer modalidade</option><option value="remote">Remoto</option><option value="hybrid">Híbrido</option><option value="onsite">Presencial</option></select>
+        <label class="rng">Nota mínima <input type="range" id="fScore" min="0" max="100" step="5" value="0"> <b id="fScoreV">0</b></label>
+        <label><input type="checkbox" id="fDesc"> Buscar também na descrição</label>
+        <label><input type="checkbox" id="fNew"> Só novas</label>
+        <label><input type="checkbox" id="fIntl"> Só internacionais</label>
+        <label><input type="checkbox" id="fClosed"> Mostrar encerradas</label>
+        <button class="btn sm ghost" id="advReset" type="button" hidden>Limpar filtros</button>
+      </div>
     </div>
-    <div class="techs" id="techChips" aria-label="Filtrar por tecnologia"></div>
+    <div class="techs" id="techChips" aria-label="Tecnologias filtradas" hidden></div>
     <div id="out"></div>
     <div class="empty" id="empty" hidden>Nenhuma vaga com esses filtros.</div>
     <div class="more" id="moreWrap" hidden><button class="btn" id="more" type="button">Carregar mais</button></div>
@@ -329,6 +348,7 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></symbol>
 <symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
 <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
 <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
@@ -394,9 +414,11 @@ $("#theme").onclick = () => { ti = (ti+1) % 3; applyTheme(); }; applyTheme();
 const last = DATA.runs[0];
 $("#sub").textContent = last ? `Execução #${last.run_id} em ${fmtDate(last.started_at)} · ${jobs.length.toLocaleString("pt-BR")} vagas guardadas` : "Nenhuma execução ainda";
 const elig = open.filter(j => j.verdict === "ELIGIBLE").length;
-const kpi = (n, l) => `<div class="kpi"><b>${n.toLocaleString("pt-BR")}</b><span>${l}</span></div>`;
-$("#kpis").innerHTML = kpi(open.length,"vagas abertas") + kpi(elig,"elegíveis") + kpi(open.filter(j=>j.is_new).length,"novas na última execução") +
-  kpi(jobs.length - open.length,"encerradas guardadas") + kpi(DATA.companies.filter(c => !c.imported).length,"empresas");
+const kpi = (n, l, cls = "", tip = "") => `<div class="kpi ${cls}"${tip ? ` title="${tip}"` : ""}><b>${n.toLocaleString("pt-BR")}</b><span>${l}</span></div>`;
+$("#kpis").innerHTML = kpi(open.length,"vagas abertas") + kpi(elig,"elegíveis","hot","Vagas abertas que passam no seu perfil") +
+  kpi(open.filter(j=>j.is_new).length,"novas na execução","","Novas na última execução");
+const nCos = DATA.companies.filter(c => !c.imported).length, nClosed = jobs.length - open.length;
+$("#kpiMeta").textContent = `${nClosed.toLocaleString("pt-BR")} encerradas guardadas · ${nCos.toLocaleString("pt-BR")} empresas`;
 
 /* ---------- painéis recolhíveis ---------- */
 function setPanel(id, openIt){
@@ -464,10 +486,24 @@ document.addEventListener("mousemove", e => { const t = e.target.closest && e.ta
 /* ---------- filtros e lista ---------- */
 const companies = [...new Set(jobs.map(j => j.company))].sort((a,b) => a.localeCompare(b,"pt-BR"));
 $("#fCompany").innerHTML = '<option value="">Todas as empresas</option>' + companies.map(c => `<option>${esc(c)}</option>`).join("");
-const techCount = {}; jobs.forEach(j => j.techs.forEach(t => techCount[t]=(techCount[t]||0)+1));
-$("#techChips").innerHTML = Object.keys(techCount).sort((a,b)=>techCount[b]-techCount[a]).map(t => `<button type="button" class="tg" aria-pressed="false" data-tech="${t}">${esc(TECH[t]||t)} <span class="muted">${techCount[t]}</span></button>`).join("");
-function toggleTech(t){ state.techs.has(t) ? state.techs.delete(t) : state.techs.add(t);
-  document.querySelectorAll(`#techChips [data-tech="${t}"]`).forEach(b => b.setAttribute("aria-pressed", state.techs.has(t))); state.shown = PAGE; render(); }
+/* Tecnologias: a escolha é feita no painel "Tecnologias" (barras clicáveis); aqui só aparecem as ativas, para remover. */
+function drawTechChips(){ const el = $("#techChips"); el.hidden = !state.techs.size;
+  el.innerHTML = state.techs.size ? '<span class="sub">Tecnologia:</span>' + [...state.techs].map(t => `<button type="button" class="tg" aria-pressed="true" data-tech="${t}" title="Remover este filtro">${esc(TECH[t]||t)} ✕</button>`).join("") : ""; }
+function toggleTech(t){ state.techs.has(t) ? state.techs.delete(t) : state.techs.add(t); drawTechChips(); state.shown = PAGE; render(); }
+
+/* filtros avançados: ficam num popover; o botão mostra quantos estão ativos */
+const advBtn = $("#advBtn"), adv = $("#adv");
+function setAdv(openIt){ adv.hidden = !openIt; advBtn.setAttribute("aria-expanded", openIt); }
+function updateAdv(){
+  const n = ($("#fDesc").checked?1:0) + ($("#fCompany").value?1:0) + ($("#fWork").value?1:0) + (+$("#fScore").value>0?1:0) +
+            ($("#fNew").checked?1:0) + ($("#fIntl").checked?1:0) + ($("#fClosed").checked?1:0);
+  $("#advN").hidden = !n; $("#advN").textContent = n; $("#advReset").hidden = !n;
+}
+advBtn.onclick = () => setAdv(adv.hidden);
+document.addEventListener("click", e => { if (!adv.hidden && !e.target.closest(".fbar")) setAdv(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !adv.hidden) { setAdv(false); advBtn.focus(); } });
+$("#advReset").onclick = () => { $("#fDesc").checked = $("#fNew").checked = $("#fIntl").checked = $("#fClosed").checked = false;
+  $("#fCompany").value = ""; $("#fWork").value = ""; $("#fScore").value = 0; $("#fScoreV").textContent = "0"; state.shown = PAGE; render(); };
 document.addEventListener("click", e => { const b = e.target.closest("[data-tech]"); if(!b) return;
   if (b.closest("#techChips")) { toggleTech(b.dataset.tech); return; }
   if (!state.techs.has(b.dataset.tech)) toggleTech(b.dataset.tech); $("#listSec").scrollIntoView({behavior:"smooth"}); });
@@ -515,6 +551,7 @@ function card(j){
       ${j.versions>1?`<span class="badge b-n" data-t="A fonte editou esta vaga ${j.versions-1}×">v${j.versions}</span>`:""}<span class="when">vista ${ago(j.first_seen)}</span></div></a>`;
 }
 function render(){
+  updateAdv();
   const rows = sorted(filtered()), total = rows.length, shown = rows.slice(0, state.shown);
   $("#count").textContent = `${total.toLocaleString("pt-BR")} de ${jobs.length.toLocaleString("pt-BR")}`;
   $("#empty").hidden = total > 0; $("#moreWrap").hidden = total <= shown.length;
@@ -545,7 +582,7 @@ $("#nLi").textContent = liJobs.length.toLocaleString("pt-BR");
 (function(){
   const stamp = liJobs.map(j => j.first_seen).sort().pop();
   $("#liNote").innerHTML = liJobs.length
-    ? `Vagas captadas à mão pelo Claude no Chrome (busca de Salesforce) e importadas para o banco${stamp ? ` em ${esc(fmtDay(stamp))}` : ""}. As colunas vêm da planilha da captura; clique numa linha para abrir a página completa da vaga.`
+    ? `Vagas captadas à mão pelo Claude no Chrome (busca de Salesforce) e importadas para o banco${stamp ? ` em ${esc(fmtDay(stamp))}` : ""}. Clique numa linha para ver senioridade, requisitos, observações e a descrição completa da vaga.`
     : `Ainda não há vagas do LinkedIn. Use <b>Importar vagas</b> na janela do app (ou <code>python main.py --importar arquivo</code>) com a planilha da captura manual.`;
   const cnt = k => liJobs.filter(j => !k || j.li.fit === k).length;
   $("#liFit").innerHTML = [["", "Todas"], ...FIT.map(f => [f, f])].map(([k,l]) =>
@@ -565,13 +602,13 @@ function liRender(){
   const rows = liRows();
   $("#liCount").textContent = `${rows.length} de ${liJobs.length}`;
   $("#liEmpty").hidden = rows.length > 0 || !liJobs.length; $("#liEmpty").textContent = "Nenhuma vaga com esses filtros.";
-  $("#liOut").innerHTML = !rows.length ? "" : `<div class="tablewrap"><table class="li-table"><thead><tr><th>Aderência</th><th>Vaga</th><th>Local</th><th>Modelo</th><th>Publicada</th><th>Candidaturas</th><th>Senioridade</th><th>Requisitos / stack</th><th>Observações</th><th>Link</th></tr></thead><tbody>` +
-    rows.map(j => { const l = j.li, stack = plain(rec(j).description_html).replace(/\s+/g," ").trim();
+  $("#liOut").innerHTML = !rows.length ? "" : `<div class="tablewrap"><table class="li-table"><thead><tr><th>Aderência</th><th>Vaga</th><th>Local</th><th>Modelo</th><th>Publicada</th><th>Candidaturas</th><th>Link</th></tr></thead><tbody>` +
+    rows.map(j => { const l = j.li;
       const model = [WORK[j.workplace], COMMIT[j.commitment] || j.commitment].filter(Boolean).join(" · ");
+      const sub = [j.company, l.seniority].filter(Boolean).join(" · ");     // requisitos e descrição ficam na página da vaga
       return `<tr class="row" data-go="${esc(j.key)}"><td><span class="badge ${FIT_BADGE[l.fit]||"b-n"}">${esc(l.fit||"—")}</span></td>
-        <td class="ttl"><b>${esc(j.title)}</b><div>${esc(j.company)}</div></td><td>${esc(j.location)}</td><td>${esc(model)}</td>
-        <td class="muted">${esc(l.posted || (j.posted_at ? ago(j.posted_at) : ""))}</td><td class="muted">${esc(l.applicants)}</td><td>${esc(l.seniority)}</td>
-        <td class="stack">${esc(stack.length > 170 ? stack.slice(0,170) + "…" : stack)}</td><td class="obs">${esc(l.notes)}</td>
+        <td class="ttl"><b>${esc(j.title)}</b><div>${esc(sub)}</div>${l.notes ? `<div class="obs1" title="${esc(l.notes)}">${esc(l.notes)}</div>` : ""}</td><td>${esc(j.location)}</td><td>${esc(model)}</td>
+        <td class="muted">${esc(l.posted || (j.posted_at ? ago(j.posted_at) : ""))}</td><td class="muted">${esc(l.applicants)}</td>
         <td>${j.url ? `<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" data-ext>abrir</a>` : ""}</td></tr>`; }).join("") + "</tbody></table></div>";
 }
 $("#liFit").onclick = e => { const b = e.target.closest("[data-f]"); if (!b) return; liState.fit = b.dataset.f; liRender(); };

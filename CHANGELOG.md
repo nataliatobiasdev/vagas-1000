@@ -4,6 +4,26 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.3.0] - 2026-11-17
+
+As abas do painel dentro da janela passam a funcionar de verdade, e o painel fica mais claro de ler e de usar (resultado de uma crítica visual).
+
+### Corrigido
+- **Painel dentro da janela**: o WebView2 entrega o fragmento da URL escapado (`#embed%7C%23/linkedin`), e o painel não reconhecia o modo embutido e mostrava as abas internas (Vagas / LinkedIn) duplicadas dentro do app. A página agora decodifica o fragmento e o autoteste do CI confere que o modo embutido ligou.
+- O autoteste do painel embutido (CI) travava por 30 min quando o WebView2 não respondia: chamadas JavaScript ganharam prazo, o autoteste derruba a árvore de processos e o passo tem limite de 5 min. O log do processo filho agora sai em UTF-8.
+- **Fontes sem leitura** deixam de aparecer com o ponto verde de "ok": ponto oco neutro e o resumo diz "N sem leitura".
+
+### Alterado
+- **Filtros**: a barra mostra só busca, veredito, ordenação e Cards/Tabela; o resto (empresa, modalidade, nota mínima, só novas, só internacionais, mostrar encerradas, buscar na descrição) fica no botão **Filtros**, que mostra quantos estão ativos e tem **Limpar filtros**. A barra fica fixa ao rolar a lista.
+- **Números**: três cartões (vagas abertas, **elegíveis** em destaque, novas na execução); encerradas e empresas viraram uma linha de resumo.
+- **Tecnologias**: a escolha é feita no painel Tecnologias; a lista só mostra, com ✕ para remover, as tecnologias ativas (antes havia duas listas com contagens diferentes).
+- **Aba do LinkedIn**: tabela com 7 colunas em vez de 10; senioridade vai sob o nome da empresa, a observação em uma linha, e os requisitos ficam na página da vaga.
+- Painéis recolhíveis com o resumo em destaque e a seta mais visível; rótulos em mono de 12 px.
+
+### Acessibilidade
+- Contornos de campos, seletores e chips com contraste mínimo de 3:1 (novo token `--border-strong`); checkboxes de 18 px, seletor de nota de 24 px e botões de 32 px.
+- Tema claro: teal e texto terciário escurecidos para atingir 4,5:1 (`#0A7A74` e `#5F6985`).
+
 ## [1.2.0] - 2026-11-16
 
 O painel passa a viver **dentro da janela do app**, ganha a aba do LinkedIn e fica mais compacto.

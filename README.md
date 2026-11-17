@@ -137,7 +137,7 @@ A elegibilidade agora entende o formato dos boards globais:
 | `Remote - LATAM`, `Latin America`, `Worldwide/Anywhere` | **ELIGIBLE** | remoto contratando na região |
 | `Remote - USA`, `Portugal`, `Bogota`, `Toronto`, `Palo Alto` | **BLOCKED** | exige presença em outro país |
 
-No painel, marque **“Só internacionais”** + veredito **“Só elegíveis”** (ou “Elegíveis + Talvez”) para ver
+No painel, abra **Filtros** e marque **“Só internacionais”** + veredito **“Só elegíveis”** (ou “Elegíveis + Talvez”) para ver
 exatamente as vagas que dá para aplicar. Sem o filtro, o Brasil aparece junto. Na execução de 2026-11-16
 eram **35 internacionais elegíveis** (a Canonical, com “Home based - Worldwide”, responde por boa parte;
 Sezzle/Luxury Presence/Engine cobrem LATAM; Turing tem vagas no Brasil e “Global - Remote”).

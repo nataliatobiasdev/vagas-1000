@@ -260,6 +260,18 @@ class PanelWindowTests(unittest.TestCase):
         html = (Path(__file__).resolve().parent.parent / "scraper" / "templates" / "dashboard.html").read_text(encoding="utf-8")
         self.assertIn('if (hashNow().startsWith("#embed|")) location.reload()', html)
 
+    def test_template_keeps_filters_in_a_popover_and_ids_the_script_relies_on(self):
+        """A barra de filtros é enxuta (busca, veredito, ordenar, cards/tabela); o resto fica no popover `#adv`.
+        Os ids dos controles não podem mudar: o script e os painéis (clique numa empresa/tecnologia) dependem deles."""
+        html = (Path(__file__).resolve().parent.parent / "scraper" / "templates" / "dashboard.html").read_text(encoding="utf-8")
+        for ident in ("advBtn", "adv", "advN", "advReset", "q", "fVerdict", "fSort", "viewSeg", "fCompany", "fWork", "fScore",
+                      "fDesc", "fNew", "fIntl", "fClosed", "techChips", "kpiMeta"):
+            self.assertIn(f'id="{ident}"', html, ident)
+        main_bar = html.split('<div class="filters main">')[1].split('<div class="adv"')[0]
+        for moved in ('id="fCompany"', 'id="fWork"', 'id="fNew"', 'id="fClosed"'):
+            self.assertNotIn(moved, main_bar)                  # ficaram no popover, não na barra principal
+        self.assertIn("--border-strong", html)
+
     def test_template_decodes_the_escaped_fragment_the_webview_delivers(self):
         """O WebView2 passa a URL por System.Uri e o fragmento chega escapado ("#embed%7C%23/linkedin"): a página
         precisa decodificar antes de comparar, senão o modo embutido (abas escondidas) nunca liga dentro do app."""
