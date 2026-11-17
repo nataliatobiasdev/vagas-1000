@@ -4,6 +4,12 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+### Adicionado
+- Marcadores **No CAM** e **Candidatura enviada** nos cards e nas tabelas de vagas, atualizados a partir do banco local do CAM.
+
+### Alterado
+- Botão de integração, estado de sucesso e mensagens seguem o design system Nevora; a documentação descreve a integração e o histórico de entregas.
+
 ## [1.5.1] - 2026-11-17
 
 ### Adicionado

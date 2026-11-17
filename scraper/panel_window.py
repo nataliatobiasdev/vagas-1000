@@ -27,6 +27,22 @@ log = logging.getLogger("scraper")
 class Api:
     """Ponte JS -> Python (window.pywebview.api.*)."""
 
+    def cam_statuses(self):
+        """Estados das vagas acompanhadas, em uma única consulta para as listas."""
+        appdata = os.environ.get('APPDATA')
+        path = Path(appdata) / 'CAM' / 'cam.db' if appdata else None
+        if not path or not path.is_file():
+            return {'ok': False}
+        try:
+            with closing(sqlite3.connect(str(path), timeout=10)) as conn:
+                if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vagas1000_inbox'").fetchone():
+                    return {'ok': False}
+                rows = conn.execute('SELECT job_key, application_id FROM vagas1000_inbox').fetchall()
+                return {'ok': True, 'statuses': {key: 'applied' if app_id else 'pending' for key, app_id in rows}}
+        except sqlite3.Error:
+            log.exception('Falha ao consultar estados das vagas no CAM')
+            return {'ok': False}
+
     def cam_status(self, key: str):
         appdata = os.environ.get('APPDATA')
         path = Path(appdata) / 'CAM' / 'cam.db' if appdata else None
@@ -83,7 +99,7 @@ def dashboard_path() -> Path:
     # Rebuild once after upgrading the bundled template; do not rewrite on every
     # poll, because the embedded window watches this file's modification time.
     try:
-        current = out.exists() and 'cam-status-v2' in out.read_text(encoding='utf-8')
+        current = out.exists() and 'cam-status-v4' in out.read_text(encoding='utf-8')
     except OSError:
         current = False
     if not current:

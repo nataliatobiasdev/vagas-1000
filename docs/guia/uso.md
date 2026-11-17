@@ -34,6 +34,12 @@ No **Painel de vagas**, a aba **LinkedIn** reúne as vagas da **captura manual**
 
 Abaixo, a lista de vagas em **cards** (ou tabela), com filtros: **só elegíveis** e **só internacionais** (vagas fora do Brasil em que você *pode* aplicar), **só novas**, nota mínima, empresa, modalidade, tecnologia e busca (inclusive na descrição). Clique numa vaga para abrir a **página completa**: veja [Seu banco de vagas](/guia/banco-de-vagas).
 
+### Acompanhar no CAM
+
+Abra o CAM atualizado pelo menos uma vez. No **painel integrado**, abra uma vaga e clique em **Adicionar ao CAM**. O registro entra no CAM como vaga para candidatar-se, com os dados disponíveis, sem registrar uma candidatura enviada. O botão informa quando a vaga já está no CAM, e os cards e tabelas mostram **No CAM** ou **Candidatura enviada** conforme o acompanhamento. Depois de se candidatar, use **Já me candidatei** no CAM para criar a candidatura e acompanhar suas etapas. A integração não envia a candidatura por você.
+
+Se o painel for aberto separadamente no navegador, a visualização continua disponível, mas a ponte local com o CAM exige o painel aberto pelo aplicativo.
+
 | Veredito | Significado |
 | --- | --- |
 | **ELIGIBLE** | Nota de pelo menos 70, local em que você pode aplicar e uma tecnologia do seu perfil |
