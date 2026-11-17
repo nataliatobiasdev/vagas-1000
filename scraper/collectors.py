@@ -6,6 +6,7 @@ import logging
 import random
 import re
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
 from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
@@ -169,20 +170,77 @@ def _post_process(jobs: list[Job], cfg: dict) -> list[Job]:
     return _dedupe_by_title(jobs, cfg)
 
 
-def _get_text(url: str, attempts: int = 2) -> str:
-    """GET HTML com uma retentativa (portais SSR, sem Selenium)."""
-    last = None
+class SourceUnavailable(Exception):
+    """O serviço inteiro (host) não responde nesta execução: não adianta tentar as demais empresas dele."""
+
+
+HTTP_TIMEOUT = 25            # segundos de leitura; as APIs respondem em ~1-7 s, então 25 já é folga
+HOST_FAIL_LIMIT = 2          # timeouts seguidos (sem nenhuma resposta entre eles) que dão o host como fora do ar
+_HOST_FAILS: dict[str, int] = {}
+_HOST_DOWN: dict[str, str] = {}      # só vale nesta execução: cada execução do app é um processo novo
+
+
+def reset_host_state() -> None:
+    _HOST_FAILS.clear()
+    _HOST_DOWN.clear()
+
+
+def _retry_wait(e: Exception, i: int) -> float:
+    """Quanto esperar antes da próxima tentativa. 429 (Too Many Requests) respeita `Retry-After` e dobra a cada
+    tentativa; o resto (timeout, 5xx) espera pouco."""
+    if isinstance(e, urllib.error.HTTPError) and e.code == 429:
+        try:
+            retry_after = float(e.headers.get("Retry-After", "") or 0)
+        except (TypeError, ValueError, AttributeError):
+            retry_after = 0.0
+        return min(max(retry_after, 10.0 * (2 ** i)), 60.0)
+    return 2.0
+
+
+def _fetch(url: str, attempts: int, data: dict | None = None) -> bytes:
+    """GET (ou POST JSON, com `data`) com tentativas e espera adequada.
+
+    Disjuntor por host: se `HOST_FAIL_LIMIT` empresas seguidas do mesmo serviço estouram o tempo sem resposta (como
+    quando a API da Lever sai do ar), as demais são puladas na hora em vez de gastar ~1 min cada."""
+    host = urlparse(url).netloc
+    if host in _HOST_DOWN:
+        raise SourceUnavailable(_HOST_DOWN[host])
+    if _HOST_FAILS.get(host, 0) >= 1:
+        attempts = 1                                    # a empresa anterior já estourou o tempo neste host: sem 2ª tentativa
+    last: Exception | None = None
     for i in range(attempts):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (vagas1000)"})
-            with urllib.request.urlopen(req, timeout=45) as resp:
-                return resp.read().decode("utf-8", "replace")
+            headers = {"User-Agent": "Mozilla/5.0 (vagas1000)"}
+            body = None
+            if data is not None:
+                body = json.dumps(data).encode()
+                headers.update({"Content-Type": "application/json", "Accept": "application/json"})
+            with urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers),
+                                        timeout=HTTP_TIMEOUT) as resp:
+                payload = resp.read()
+            _HOST_FAILS[host] = 0
+            return payload
         except Exception as e:
             last = e
+            if isinstance(e, urllib.error.HTTPError):
+                _HOST_FAILS[host] = 0                       # o servidor respondeu: está no ar
             if i + 1 < attempts:
-                log.warning("GET falhou (%s %s); tentando de novo", type(e).__name__, str(e)[:80])
-                time.sleep(2.0)
+                wait = _retry_wait(e, i)
+                log.warning("%s falhou (%s %s); tentando de novo em %.0fs", host, type(e).__name__, str(e)[:80], wait)
+                time.sleep(wait)
+    assert last is not None
+    if not isinstance(last, urllib.error.HTTPError) and isinstance(last, (TimeoutError, OSError)):
+        _HOST_FAILS[host] = _HOST_FAILS.get(host, 0) + 1
+        if _HOST_FAILS[host] >= HOST_FAIL_LIMIT:
+            _HOST_DOWN[host] = (f"{host} não respondeu em {HTTP_TIMEOUT}s (serviço fora do ar ou bloqueado); "
+                                "as demais empresas dele foram puladas nesta execução — as vagas guardadas continuam")
+            log.error("%s", _HOST_DOWN[host])
     raise last
+
+
+def _get_text(url: str, attempts: int = 2) -> str:
+    """GET HTML com uma retentativa (portais SSR, sem Selenium)."""
+    return _fetch(url, attempts).decode("utf-8", "replace")
 
 
 def _now() -> str:
@@ -207,13 +265,14 @@ def _fetch_details(jobs: list[Job], cfg: dict, fetch, max_new: int, pause: tuple
     known = cfg.get("_known") or {}
     days = float(cfg.get("detail_refresh_days", 7))
     fetched = 0
+    failures = 0                                         # falhas seguidas: o site está limitando (429) ou fora do ar
     for j in jobs:
         cached = known.get(db.job_key(j))
         if cached and _detail_fresh(cached.get("detail_at", ""), days):
             parsers.apply_detail(j, cached)
             j.detail_at = cached["detail_at"]
             continue
-        if fetched >= max_new or not j.url:
+        if fetched >= max_new or failures >= 3 or not j.url:
             if cached:                                   # sem orçamento agora: mantém o guardado, mesmo velho
                 parsers.apply_detail(j, cached)
                 j.detail_at = cached.get("detail_at", "")
@@ -221,8 +280,13 @@ def _fetch_details(jobs: list[Job], cfg: dict, fetch, max_new: int, pause: tuple
         try:
             parsers.apply_detail(j, fetch(j))
             j.detail_at = _now()
+            failures = 0
         except Exception as e:
+            failures += 1
             log.warning("detalhe %s falhou %s: %s", label, j.url, e)
+            if failures >= 3:
+                log.warning("[%s] 3 detalhes seguidos falharam: parei de abrir detalhes nesta execução "
+                            "(o resto fica para a próxima, reaproveitando o que o banco já tem)", cfg["company_id"])
             if cached:
                 parsers.apply_detail(j, cached)
                 j.detail_at = cached.get("detail_at", "")
@@ -252,22 +316,7 @@ def collect_gupy(driver, cfg: dict, max_details: int = 150) -> list[Job]:
 # --------------------------------------------------- Workday (Salesforce etc.)
 def _post_json(url: str, body: dict, attempts: int = 3):
     """POST JSON com backoff — o Workday da Salesforce responde 429 quando aceleramos."""
-    last = None
-    for i in range(attempts):
-        try:
-            req = urllib.request.Request(
-                url, data=json.dumps(body).encode(),
-                headers={"User-Agent": "Mozilla/5.0 (vagas1000)",
-                         "Content-Type": "application/json", "Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=45) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except Exception as e:
-            last = e
-            if i + 1 < attempts:
-                wait = 8 * (i + 1)
-                log.warning("Workday respondeu %s; aguardando %ss", type(e).__name__, wait)
-                time.sleep(wait)
-    raise last
+    return json.loads(_fetch(url, attempts, data=body).decode("utf-8"))
 
 
 def collect_workday(driver, cfg: dict, max_details: int = 30) -> list[Job]:
@@ -304,18 +353,7 @@ def collect_workday(driver, cfg: dict, max_details: int = 30) -> list[Job]:
 
 def _get_json(url: str, attempts: int = 2):
     """GET JSON com uma retentativa — cobre timeout/hiccup de rede sem derrubar a empresa."""
-    last = None
-    for i in range(attempts):
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (vagas1000)"})
-            with urllib.request.urlopen(req, timeout=45) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except Exception as e:
-            last = e
-            if i + 1 < attempts:
-                log.warning("GET falhou (%s %s); tentando de novo", type(e).__name__, str(e)[:80])
-                time.sleep(2.0)
-    raise last
+    return json.loads(_fetch(url, attempts).decode("utf-8"))
 
 
 def collect_lever_api(driver, cfg: dict, max_details: int = 120) -> list[Job]:

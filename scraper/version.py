@@ -3,4 +3,4 @@
 Para lançar: altere este número e o CHANGELOG.md, faça merge na main e crie a tag `vX.Y.Z`
 (o workflow release.yml gera o instalador e publica a Release).
 """
-__version__ = "1.3.0"
+__version__ = "1.3.1"

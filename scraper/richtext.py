@@ -32,6 +32,10 @@ def clean_html(raw: str) -> str:
     for c in root.find_all(string=lambda x: isinstance(x, Comment)):
         c.extract()
     for el in list(root.find_all(True)):
+        # Filho de uma tag DROP já removida (ex.: <path> dentro de <svg>): sai da árvore junto com o pai e não pode mais
+        # ser desempacotado ("Cannot replace an element with its contents when that element is not part of a tree").
+        if getattr(el, "decomposed", False) or el.parent is None:
+            continue
         name = el.name
         if name in DROP:
             el.decompose()

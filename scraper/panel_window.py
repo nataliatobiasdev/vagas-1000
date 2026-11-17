@@ -100,6 +100,19 @@ def embed_url(path: Path, route: str) -> str:
     return path.resolve().as_uri() + "#embed|" + (route if route.startswith("#") else "#/")
 
 
+def mtime_settled(state: dict, mtime: float, now: float, settle: float = 1.5) -> bool:
+    """True quando o arquivo do painel mudou e ficou parado por `settle` s (o app termina de gravar antes de recarregar).
+    Sem isto o painel aberto na janela seguia com os números da busca anterior até a pessoa trocar de aba."""
+    if mtime == state.get("mtime"):
+        state.pop("seen", None)
+        return False
+    seen = state.get("seen")
+    if not seen or seen[0] != mtime:
+        state["seen"] = (mtime, now)
+        return False
+    return now - seen[1] >= settle
+
+
 def run_embedded(parent: int, route: str = "#/") -> int:
     """Painel como janela FILHA da janela principal (`parent` = HWND de um Frame do Tk), sem borda e do tamanho dele.
 
@@ -220,7 +233,18 @@ def run_embedded(parent: int, route: str = "#/") -> int:
             time.sleep(1)
         _trace(f"pagina: {info}")
         last = (w, h)
+        tick = 0
         while u32.IsWindow(parent):
+            tick += 1
+            if tick % 8 == 0:                                  # ~1 s: o painel se atualiza sozinho quando o arquivo muda
+                try:
+                    m_now = dashboard_path().stat().st_mtime
+                except OSError:
+                    m_now = None
+                if m_now is not None and mtime_settled(state, m_now, time.time()):
+                    state["mtime"] = m_now
+                    _trace("painel regenerado: recarregando a página")
+                    js(win, "location.reload()", timeout=1.0)  # mantém a rota e a aba em que a pessoa está
             size = parent_size()
             if size != last and size[0] > 0 and size[1] > 0:
                 u32.SetWindowPos(hwnd, None, 0, 0, size[0], size[1], SWP_NOZORDER | SWP_NOACTIVATE)

@@ -8,7 +8,7 @@
 | --- | --- |
 | Cartões | Vagas abertas, elegíveis e empresas, lidos do banco local |
 | **Atualizar base** | Captura as 54 empresas, grava no banco e regenera o painel |
-| Abas **Início**, **Painel de vagas** e **LinkedIn** | Trocam o conteúdo da própria janela: o painel (`out/dashboard.html`) aparece dentro dela, sem abrir outra |
+| Abas **Início** e **Painel de vagas** | Trocam o conteúdo da própria janela: o painel (`out/dashboard.html`) aparece dentro dela, sem abrir outra. A aba do LinkedIn fica dentro do painel; ele se atualiza sozinho quando a busca termina |
 | **Abrir painel** | Atalho para a aba **Painel de vagas** |
 | **Abrir presenciais** | Abre o relatório de vagas presenciais por estado |
 | **Abrir pasta** | Abre a pasta de dados |
@@ -29,9 +29,9 @@ No topo ficam os números e **três painéis curtos, lado a lado, que recolhem e
 | **Por empresa** | Barra com a distribuição de vereditos e o total de vagas | Todas as empresas, com busca e ordenação; clicar numa empresa filtra a lista |
 | **Tecnologias** | As 3 principais, com a contagem | Todas, com “elegíveis/abertas”; clicar numa tecnologia filtra a lista |
 
-### Aba LinkedIn
+### Aba LinkedIn (dentro do painel)
 
-A aba **LinkedIn** reúne as vagas da **captura manual** (a planilha que o Claude monta no Chrome e você traz com **Importar vagas**). Mostra as colunas da planilha (aderência, local, modelo, publicada, candidaturas, senioridade, requisitos e observações), com busca, filtro por aderência (Alta, Média, Baixa) e por modelo, e ordenação. Clicar numa linha abre a página completa da vaga; **abrir** leva ao anúncio no LinkedIn.
+No **Painel de vagas**, a aba **LinkedIn** reúne as vagas da **captura manual** (a planilha que o Claude monta no Chrome e você traz com **Importar vagas**). Mostra as colunas da planilha (aderência, local, modelo, publicada, candidaturas, senioridade, requisitos e observações), com busca, filtro por aderência (Alta, Média, Baixa) e por modelo, e ordenação. Clicar numa linha abre a página completa da vaga; **abrir** leva ao anúncio no LinkedIn.
 
 Abaixo, a lista de vagas em **cards** (ou tabela), com filtros: **só elegíveis** e **só internacionais** (vagas fora do Brasil em que você *pode* aplicar), **só novas**, nota mínima, empresa, modalidade, tecnologia e busca (inclusive na descrição). Clique numa vaga para abrir a **página completa**: veja [Seu banco de vagas](/guia/banco-de-vagas).
 

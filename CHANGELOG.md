@@ -4,6 +4,20 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.3.1] - 2026-11-17
+
+Correções dos erros da busca de vagas, painel que se atualiza sozinho e janela só com as abas Início e Painel de vagas.
+
+### Corrigido
+- **Vagas da Stone sem descrição**: o limpador de HTML quebrava ("Cannot replace an element with its contents…") quando uma tag desconhecida vinha dentro de outra removida (um `<path>` dentro de `<svg>`); as 9 vagas ficavam sem detalhe a cada busca.
+- **Lever fora do ar não trava mais a busca**: cada empresa gastava ~93 s em timeouts (6 min só em 4 empresas). O tempo de leitura caiu para 25 s e um disjuntor por serviço pula as demais empresas dele depois de duas falhas seguidas, com a mensagem "api.lever.co não respondeu… as vagas guardadas continuam" (4 empresas: de ~374 s para ~79 s).
+- **Workday (Salesforce) com 429**: a espera entre tentativas agora respeita `Retry-After` e dobra (10, 20, 40 s), e depois de 3 detalhes seguidos com erro o app para de bater na porta e reaproveita o que o banco já tem.
+- **Números velhos no painel**: o painel dentro da janela só recarregava ao trocar de aba; agora ele se atualiza sozinho quando a busca (ou uma importação) regrava o arquivo, mantendo a aba e a vaga em que você estava. O arquivo é gravado inteiro e trocado de uma vez, e nunca é lido pela metade.
+- O log da execução pelo app (`app-run.log`) saía com acentos quebrados ("t�tulo"); agora é UTF-8.
+
+### Alterado
+- A janela tem só as abas **Início** e **Painel de vagas**. A aba **LinkedIn** fica dentro do painel, que agora mostra as abas Vagas e LinkedIn também dentro do app. Voltar ao painel mantém a aba interna em que você estava.
+
 ## [1.3.0] - 2026-11-17
 
 As abas do painel dentro da janela passam a funcionar de verdade, e o painel fica mais claro de ler e de usar (resultado de uma crítica visual).
