@@ -103,6 +103,11 @@ class HostCircuitBreakerTests(unittest.TestCase):
 
 
 class WindowLayoutTests(unittest.TestCase):
+    def test_window_has_no_presenciais_button(self):
+        app = (ROOT / "app.py").read_text(encoding="utf-8")
+        self.assertNotIn("Abrir presenciais", app)
+        self.assertNotIn("open_presenciais", app)
+
     def test_window_has_only_inicio_and_painel_tabs_and_the_panel_keeps_its_own(self):
         app = (ROOT / "app.py").read_text(encoding="utf-8")
         self.assertIn('(("home", "Início"), ("panel", "Painel de vagas"))', app)

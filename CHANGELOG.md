@@ -4,6 +4,9 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+### Removido
+- Botão **Abrir presenciais** da janela (não era usado). O relatório `out/presenciais.md` continua sendo gerado a cada execução.
+
 ### Adicionado
 - **Planilha da busca Salesforce sênior no formato do app**: a planilha da captura (17/11) entra com aderência Alta/Média/Baixa, senioridade e tipo de contrato na aba LinkedIn. Antes esses três campos não eram reconhecidos na importação.
 - **Script de busca sem IA** (`linkedin-jobs/exportar_planilha.py`): gera a planilha do mesmo formato usando o Chrome já logado, sem tokens. A aderência e o critério de senioridade são regras transparentes (`linkedin-jobs/planilha.py`); contra a planilha de 17/11 batem em 78% das vagas. Abrir a descrição de cada vaga é opcional (`--detalhes`) e o padrão é não abrir, como no modo seguro.

@@ -324,7 +324,6 @@ class Vagas1000App:
         self.buttons.append(CBtn(self, "dash", "Abrir painel", self.open_dashboard, icon="layout"))
         if HAS_LINKEDIN:
             self.buttons.append(CBtn(self, "lir", "Relatório LinkedIn", self.open_linkedin_report, icon="briefcase"))
-        self.buttons.append(CBtn(self, "pres", "Abrir presenciais", self.open_presenciais, icon="pin"))
         self.buttons.append(CBtn(self, "dir", "Abrir pasta", self.open_folder, icon="folder"))
         self.buttons.append(CBtn(self, "imp", "Importar vagas", self.import_jobs, icon="upload"))
         self.log = tk.Text(c, bg=FIELD, fg=MUTED, bd=0, wrap="none", font=FONT_MONO(9), state="disabled",
@@ -770,13 +769,6 @@ class Vagas1000App:
     def open_dashboard(self):
         """Mostra o painel na aba “Painel de vagas”, dentro desta janela (sem abrir outra)."""
         self.show_tab("panel")
-
-    def open_presenciais(self):
-        p = OUT / "presenciais.md"
-        if p.exists():
-            os.startfile(p)  # noqa: S606
-        else:
-            self._append_log("Relatório de presenciais ainda não existe.")
 
     def open_folder(self):
         os.startfile(paths.HOME)  # noqa: S606
