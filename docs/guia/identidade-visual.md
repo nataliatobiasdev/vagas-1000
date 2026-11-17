@@ -27,7 +27,7 @@ O tema escuro é a referência. O claro (painel e site) usa os mesmos tons escur
 | `subtle` | Hover, fundo secundário | <span class="sw" style="background:#1C2238"></span> `#1C2238` | <span class="sw" style="background:#EEF0F8"></span> `#EEF0F8` |
 | `field` | Inputs e área de log | <span class="sw" style="background:#0E121E"></span> `#0E121E` | <span class="sw" style="background:#FAFBFF"></span> `#FAFBFF` |
 | `accent` | Violeta, ação principal | <span class="sw" style="background:#9D8CFF"></span> `#9D8CFF` | <span class="sw" style="background:#6C5CE7"></span> `#6C5CE7` |
-| `teal` | Detalhes e destaque secundário | <span class="sw" style="background:#42D6CD"></span> `#42D6CD` | <span class="sw" style="background:#0D8A83"></span> `#0D8A83` |
+| `teal` | Detalhes e destaque secundário | <span class="sw" style="background:#42D6CD"></span> `#42D6CD` | <span class="sw" style="background:#0A7A74"></span> `#0A7A74` |
 | `success` | Sucesso | <span class="sw" style="background:#45D6A0"></span> `#45D6A0` | <span class="sw" style="background:#128058"></span> `#128058` |
 | `warning` | Atenção | <span class="sw" style="background:#F5C66B"></span> `#F5C66B` | <span class="sw" style="background:#9C6008"></span> `#9C6008` |
 | `danger` | Erro | <span class="sw" style="background:#FF718D"></span> `#FF718D` | <span class="sw" style="background:#CD2D50"></span> `#CD2D50` |

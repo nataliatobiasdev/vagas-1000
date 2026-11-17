@@ -29,7 +29,7 @@ flowchart LR
   D -->|"volta a aparecer"| B
 ```
 
-Nada é apagado. Uma vaga encerrada continua no painel (marque **Mostrar encerradas**) e na página completa, com tudo que foi capturado.
+Nada é apagado. Uma vaga encerrada continua no painel (em **Filtros**, marque **Mostrar encerradas**) e na página completa, com tudo que foi capturado.
 
 Duas regras protegem o que já foi guardado:
 
@@ -44,7 +44,7 @@ O painel tem dois jeitos de olhar a lista, e uma página completa por vaga:
 - **Tabela**: a mesma lista, compacta e ordenável.
 - **Página da vaga** (clique no card ou na linha): resumo, descrição completa, seções, motivos da nota, dados do seu banco, histórico de versões, metadados da fonte e os dados brutos. Dá para abrir a vaga original, copiar o link, **baixar o registro em JSON** e imprimir.
 
-A busca pode incluir a **descrição**: marque “incluir descrição” para achar vagas por qualquer palavra do texto.
+A busca pode incluir a **descrição**: em **Filtros**, marque “Buscar também na descrição” para achar vagas por qualquer palavra do texto.
 
 ## Trazer vagas de fora (LinkedIn, planilha)
 
