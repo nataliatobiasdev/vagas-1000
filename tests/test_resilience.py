@@ -112,6 +112,25 @@ class WindowLayoutTests(unittest.TestCase):
         self.assertNotIn('[data-embed="1"] .tabs{display:none}', html)  # as abas internas aparecem também dentro do app
 
 
+class PolishTests(unittest.TestCase):
+    """Itens P3 da crítica visual (placeholder, cards encerrados, ordenação por teclado)."""
+
+    def setUp(self):
+        self.html = (ROOT / "scraper" / "templates" / "dashboard.html").read_text(encoding="utf-8")
+
+    def test_placeholder_has_an_explicit_color(self):
+        self.assertIn("::placeholder{color:var(--ink-3);opacity:1}", self.html)
+
+    def test_closed_cards_fade_only_title_and_tile(self):
+        self.assertNotIn(".card.closed{opacity", self.html)           # esmaecer o card todo derrubava o contraste dos metadados
+        self.assertIn(".card.closed .c-title,.card.closed .tile{opacity:.6}", self.html)
+
+    def test_sortable_headers_are_keyboard_reachable_and_hint_at_sorting(self):
+        self.assertIn('tabindex="0" title="Ordenar por ', self.html)
+        self.assertIn('e.target.matches("th[data-k]")', self.html)
+        self.assertIn('content:" ↕"', self.html)
+
+
 class FetchDetailsTests(unittest.TestCase):
     def test_stops_opening_details_after_three_failures_in_a_row(self):
         """Workday respondia 429 em cada detalhe e o app seguia batendo na porta até o fim da lista."""

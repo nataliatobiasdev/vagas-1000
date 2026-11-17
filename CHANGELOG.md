@@ -4,6 +4,16 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.4.1] - 2026-11-17
+
+Polimento visual do painel e da documentação (últimos itens da crítica visual).
+
+### Alterado
+- **Campos de busca**: o texto-guia (placeholder) agora tem cor explícita, com contraste de 5,2:1; o padrão do navegador quase sumia no campo escuro.
+- **Cards de vagas encerradas**: só o título e o selo ficam esmaecidos; o restante do card mantém o contraste (antes o card inteiro perdia opacidade e os metadados caíam abaixo de 4,5:1).
+- **Colunas da tabela**: mostram "Ordenar por …" e a seta ↕ ao passar o mouse ou focar, e podem ser acionadas pelo teclado (Tab, Enter ou espaço).
+- A imagem da janela na documentação foi refeita com a versão atual (abas Início e Painel de vagas, botão "Refazer com erro").
+
 ## [1.4.0] - 2026-11-17
 
 ### Adicionado
