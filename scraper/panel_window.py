@@ -59,6 +59,14 @@ CMD_FILE_NAME = "panel-cmd.json"
 EMBED_FAILED = 3                     # código de saída de run_embedded quando não deu para embutir (o app abre o navegador)
 
 
+def _trace(msg: str) -> None:
+    """Diagnóstico do painel embutido: vai para o stderr (o autoteste do CI recolhe e publica)."""
+    try:
+        print(f"[painel] {msg}", file=sys.stderr, flush=True)
+    except Exception:
+        pass
+
+
 def cmd_file() -> Path:
     return paths.OUT / CMD_FILE_NAME
 
@@ -83,8 +91,8 @@ def run_embedded(parent: int, route: str = "#/") -> int:
     """Painel como janela FILHA da janela principal (`parent` = HWND de um Frame do Tk), sem borda e do tamanho dele.
 
     O WebView2 precisa do laço de eventos do próprio processo, então ele continua num processo à parte; o Windows
-    deixa uma janela de um processo ser filha de outra. A janela é criada escondida, vira filha (WS_CHILD +
-    SetParent) e só então aparece, para não piscar fora do app. Em segundo plano, acompanha o tamanho do pai,
+    deixa uma janela de um processo ser filha de outra. A janela nasce fora da tela, vira filha (WS_CHILD +
+    SetParent) e só então aparece no app, sem piscar. Em segundo plano, acompanha o tamanho do pai,
     obedece a `send_route` (arquivo `out/panel-cmd.json`) e se fecha quando a janela principal some.
     Devolve EMBED_FAILED se o WebView2 não estiver disponível ou a janela não puder ser embutida.
     """
@@ -128,21 +136,33 @@ def run_embedded(parent: int, route: str = "#/") -> int:
         return r.right - r.left, r.bottom - r.top
 
     def worker(win):
+        try:
+            _worker(win)
+        except Exception:
+            import traceback
+            _trace("erro no worker:\n" + traceback.format_exc())
+        finally:
+            try:
+                win.destroy()
+            except Exception:
+                pass
+
+    def _worker(win):
         hwnd = 0
         for _ in range(300):                                   # até ~30 s para o WebView2 criar a janela
             hwnd = u32.FindWindowW(None, title)
             if hwnd or not u32.IsWindow(parent):
                 break
             time.sleep(0.1)
+        _trace(f"janela do WebView2: hwnd={hwnd} pai_existe={bool(u32.IsWindow(parent))}")
         if not hwnd or not u32.IsWindow(parent):
-            win.destroy()
             return
         style = u32.GetWindowLongPtrW(hwnd, GWL_STYLE)
         u32.SetWindowLongPtrW(hwnd, GWL_STYLE, (style & ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME)) | WS_CHILD | WS_VISIBLE)
-        u32.SetParent(hwnd, parent)
+        old = u32.SetParent(hwnd, parent)
         w, h = parent_size()
         u32.SetWindowPos(hwnd, None, 0, 0, max(w, 1), max(h, 1), SWP_NOZORDER | SWP_NOACTIVATE)
-        win.show()
+        _trace(f"SetParent: pai_anterior={old} pai_atual={u32.GetParent(hwnd)} tamanho={w}x{h}")
         state["failed"] = False
         last = (w, h)
         while u32.IsWindow(parent):
@@ -157,6 +177,7 @@ def run_embedded(parent: int, route: str = "#/") -> int:
             if cmd and cmd.get("n", 0) != state["n"]:
                 state["n"] = cmd.get("n", 0)
                 route = str(cmd.get("route") or "#/")
+                _trace(f"comando: {route}")
                 try:
                     m = dashboard_path().stat().st_mtime
                     if m != state["mtime"]:                    # o painel foi regenerado (nova atualização/importação)
@@ -165,19 +186,21 @@ def run_embedded(parent: int, route: str = "#/") -> int:
                     else:
                         win.evaluate_js(f"location.hash = {json.dumps(route)}")
                 except Exception as e:                         # pragma: no cover - janela em fechamento
-                    log.warning("painel embutido: %s", e)
+                    _trace(f"painel embutido: {e}")
             time.sleep(0.12)
-        win.destroy()
+        _trace("janela principal fechou: encerrando o painel")
 
     try:
         webview.settings["ALLOW_DOWNLOADS"] = True
         win = webview.create_window(title, url=embed_url(path, route), js_api=Api(), width=900, height=600,
-                                    frameless=True, easy_drag=False, hidden=True, background_color="#0B0E19")
+                                    x=-32000, y=-32000, frameless=True, easy_drag=False, background_color="#0B0E19")
         storage = paths.HOME / ".webview"
         storage.mkdir(parents=True, exist_ok=True)
         webview.start(worker, win, private_mode=False, storage_path=str(storage))
     except Exception as e:
+        import traceback
         log.warning("não consegui embutir o painel (%s)", e)
+        _trace("falha ao abrir o WebView:\n" + traceback.format_exc())
         return EMBED_FAILED
     return EMBED_FAILED if state["failed"] else 0
 
@@ -212,7 +235,11 @@ def run_embedded_autotest() -> int:
         cmd = [sys.executable]
     else:
         cmd = [sys.executable, str(Path(__file__).resolve().parent.parent / "app.py")]
-    proc = subprocess.Popen(cmd + ["--janela-painel", "--embutir", str(host.winfo_id()), "--rota", "#/"])
+    child_log = paths.LOGS / "painel-embutido-filho.txt"
+    child_log.parent.mkdir(parents=True, exist_ok=True)
+    with open(child_log, "w", encoding="utf-8") as fh:
+        proc = subprocess.Popen(cmd + ["--janela-painel", "--embutir", str(host.winfo_id()), "--rota", "#/"],
+                                stdout=fh, stderr=subprocess.STDOUT)
     result = {"child": None, "colors": 0, "size": None, "visible": False, "exit": None}
     t0 = time.time()
     while time.time() - t0 < 60 and proc.poll() is None:
@@ -251,6 +278,11 @@ def run_embedded_autotest() -> int:
     size = result["size"] or (0, 0)
     ok = bool(result["child"] and alive and closed and result["colors"] > 40
               and abs(size[0] - w) <= 4 and abs(size[1] - h) <= 4)
+    try:
+        tail = child_log.read_text(encoding="utf-8", errors="replace")[-1800:]
+    except OSError:
+        tail = ""
+    print(f"filho:\n{tail}")
     print(f"embutido: janela={bool(result['child'])} visivel={result['visible']} tamanho={size} cores={result['colors']} "
           f"viva_apos_trocar_aba={alive} fechou_com_o_pai={closed} saida={result['exit']}")
     return 0 if ok else 1

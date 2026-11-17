@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'ci/**']          # ci/**: branches de teste do pipeline, sem precisar abrir PR
   pull_request:
 
 jobs:
@@ -53,8 +53,15 @@ jobs:
         run: |
           $p = Start-Process -FilePath "dist\vagas1000\vagas1000.exe" -ArgumentList "--janela-painel","--autoteste-embutido" `
                -Wait -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\embutido.txt" -RedirectStandardError "$env:RUNNER_TEMP\embutido.err"
-          Get-Content "$env:RUNNER_TEMP\embutido.txt", "$env:RUNNER_TEMP\embutido.err" -ErrorAction SilentlyContinue
-          if ($p.ExitCode -ne 0) { throw "autoteste do painel embutido falhou (código $($p.ExitCode))" }
+          $out = (Get-Content "$env:RUNNER_TEMP\embutido.txt", "$env:RUNNER_TEMP\embutido.err" -ErrorAction SilentlyContinue) -join "`n"
+          Write-Host $out
+          if ($p.ExitCode -ne 0) {
+            # o log do Actions exige login; a anotação de erro é pública e traz o diagnóstico
+            $msg = if ($out.Length -gt 3000) { $out.Substring($out.Length - 3000) } else { $out }
+            $msg = $msg.Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
+            Write-Host "::error title=Autoteste do painel embutido::$msg"
+            throw "autoteste do painel embutido falhou (código $($p.ExitCode))"
+          }
       - name: Instalador Windows (NSIS, por usuário)
         shell: bash
         run: |
