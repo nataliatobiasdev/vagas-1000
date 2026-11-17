@@ -632,6 +632,7 @@ function setTab(t){
 document.querySelectorAll(".tabs [data-tab]").forEach(b => b.onclick = () => { location.hash = b.dataset.tab === "li" ? "#/linkedin" : "#/"; });
 
 /* ---------- página completa da vaga ---------- */
+/* cam-status-v2 */
 const fact = (icon, label, val) => val || val === 0 ? `<div class="fact"><dt>${ic(icon)}${label}</dt><dd>${val}</dd></div>` : "";
 const dateFact = iso => iso ? `${esc(fmtDay(iso))} <span class="muted">(${ago(iso)})</span>` : "";
 let homeScroll = 0, viewing = null;
@@ -653,7 +654,7 @@ function showJob(key, verN){
   const locs = (R.locations && R.locations.length ? R.locations : [j.location]).filter(Boolean);
   $("#viewJob").innerHTML = `
     <div class="crumbs"><a class="btn" href="#/" id="back">${ic("back")}Voltar às vagas</a><span class="sp"></span>
-      ${links.join("")}<button class="btn" id="copyLink" type="button">${ic("copy")}Copiar link</button>
+      ${links.join("")}<button class="btn primary" id="addCam" type="button">Adicionar ao CAM</button><button class="btn" id="copyLink" type="button">${ic("copy")}Copiar link</button>
       <button class="btn" id="dlRec" type="button">${ic("dl")}Baixar registro</button><button class="btn" onclick="window.print()" type="button">${ic("print")}Imprimir</button></div>
     ${ver && !ver._cur ? `<div class="notice"><b>Versão ${ver.n} de ${vers.length}</b> · como a vaga estava em ${esc(fmtDate(ver.seen_at))}. <a href="#/vaga/${encodeURIComponent(key)}">Ver a versão atual</a></div>` : ""}
     <div class="j-head"><div class="tile lg">${esc(j.company.slice(0,1).toUpperCase())}</div>
@@ -683,6 +684,30 @@ function showJob(key, verN){
       ${meta ? `<div class="box"><h2>Metadados da fonte</h2><dl class="facts">${meta}</dl></div>` : ""}
     </div></div>`;
   $("#back").onclick = e => { if (history.length > 1) { e.preventDefault(); history.back(); } };
+  const camButton = $("#addCam");
+  const camApi = window.pywebview && window.pywebview.api;
+  if (camApi && camApi.cam_status) {
+    camButton.disabled = true;
+    camApi.cam_status(key).then(result => {
+      if (!camButton.isConnected) return;
+      if (result.status === 'pending' || result.status === 'applied') {
+        camButton.textContent = result.status === 'applied' ? 'Candidatura no CAM' : 'Adicionada ao CAM';
+        camButton.disabled = true;
+      } else camButton.disabled = false;
+    }).catch(() => { if (camButton.isConnected) camButton.disabled = false; });
+  }
+  $("#addCam").onclick = async () => {
+    const button = $("#addCam"), api = window.pywebview && window.pywebview.api;
+    if (!api || !api.add_to_cam) { alert("Abra o painel dentro do vagas1000 para adicionar ao CAM."); return; }
+    button.disabled = true;
+    try {
+      const result = await api.add_to_cam(key, j, r0);
+      if (!result.ok) { alert(result.message); return; }
+      button.textContent = result.already ? "Já está no CAM" : "Adicionada ao CAM";
+      button.dataset.added = "true";
+    } catch (e) { alert("Não foi possível adicionar ao CAM. Tente novamente."); }
+    finally { button.disabled = button.dataset.added === "true"; }
+  };
   $("#copyLink").onclick = async () => { const u = j.url || location.href; try { await navigator.clipboard.writeText(u); $("#copyLink").lastChild.textContent = "Copiado"; } catch(e){ prompt("Copie o link:", u); } };
   $("#dlRec").onclick = () => { const blob = new Blob([JSON.stringify({vaga:j, registro:rec(j)}, null, 2)], {type:"application/json"});
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `vaga-${j.key.replace(/[^\w.-]+/g,"_")}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
