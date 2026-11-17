@@ -418,7 +418,10 @@ const kpi = (n, l, cls = "", tip = "") => `<div class="kpi ${cls}"${tip ? ` titl
 $("#kpis").innerHTML = kpi(open.length,"vagas abertas") + kpi(elig,"elegíveis","hot","Vagas abertas que passam no seu perfil") +
   kpi(open.filter(j=>j.is_new).length,"novas na execução","","Novas na última execução");
 const nCos = DATA.companies.filter(c => !c.imported).length, nClosed = jobs.length - open.length;
-$("#kpiMeta").textContent = `${nClosed.toLocaleString("pt-BR")} encerradas guardadas · ${nCos.toLocaleString("pt-BR")} empresas`;
+const badCo = new Set(DATA.companies.filter(c => c.ok === false).map(c => c.company_id));       // fonte que não respondeu na última leitura
+const nUnv = open.filter(j => badCo.has(j.company_id)).length;
+$("#kpiMeta").textContent = `${nClosed.toLocaleString("pt-BR")} encerradas guardadas · ${nCos.toLocaleString("pt-BR")} empresas` +
+  (badCo.size ? ` · ${nUnv.toLocaleString("pt-BR")} das vagas abertas são de ${badCo.size} fonte${badCo.size > 1 ? "s" : ""} sem leitura na última execução (guardadas, não verificadas)` : "");
 
 /* ---------- painéis recolhíveis ---------- */
 function setPanel(id, openIt){

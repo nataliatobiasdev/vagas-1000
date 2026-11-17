@@ -4,6 +4,16 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.4.0] - 2026-11-17
+
+### Adicionado
+- **Botão "Refazer com erro"** na tela Início: refaz só as fontes cuja última leitura falhou (por exemplo, a Lever depois de uma queda), em segundos em vez dos ~9 min de uma busca inteira. Nada é fechado nem apagado nas outras fontes. Fica desativado quando não há fonte com erro ou enquanto uma busca roda.
+
+### Corrigido
+- **Indicadores do alto da tela Início desatualizados**: os cartões contavam o banco todo (1.201 vagas, 262 elegíveis), incluindo as vagas de fontes que não responderam na última busca, e divergiam da linha de baixo ("1110 vagas · 219 elegíveis"). Agora os cartões mostram o que a última leitura **confirmou**, e as vagas guardadas de fontes sem leitura aparecem à parte ("+91 de 4 fontes sem leitura"). O resumo do painel diz o mesmo.
+- **Fontes do painel após uma execução parcial**: o painel lia o resultado de cada fonte só da última execução, então refazer só algumas fontes deixaria as outras como "sem leitura". Agora vale o resultado mais recente de cada fonte.
+- Quando **nenhuma fonte responde**, a janela diz "Nenhuma fonte respondeu" e que as vagas guardadas foram mantidas, em vez de "Concluído · 0 vagas".
+
 ## [1.3.2] - 2026-11-17
 
 ### Corrigido

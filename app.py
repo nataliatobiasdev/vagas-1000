@@ -22,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
-from scraper import gfx, paths
+from scraper import gfx, paths, stats
 from scraper.theme import (ACCENT, ACCENT_FG, BG, BORDER, DANGER, FIELD, FG, FONT_BODY, FONT_BODY_SB,
                            FONT_HEAD, FONT_MONO, MUTED, MUTED_2, PANEL, SUBTLE, TEAL, tint)
 from scraper.version import __version__
@@ -174,6 +174,8 @@ class Vagas1000App:
         self.run_started = None
         self._last_results = 0
         self._last_errors = 0
+        self.failed_ids: list[str] = []      # fontes cuja última leitura falhou (alimenta "Refazer com erro")
+        self.retry_ids: list[str] | None = None
         self.was_external = False
         self.li_proc = None
         self.li_log = None
@@ -315,7 +317,8 @@ class Vagas1000App:
         self.badge = self._Badge(self)
         self.btn_run = CBtn(self, "run", "Atualizar base", self.start_run, "primary", "refresh", big=True)
         self.btn_li = CBtn(self, "li", "Buscar no LinkedIn", self.start_linkedin, "teal", "linkedin")
-        self.buttons = [self.btn_run]
+        self.btn_retry = CBtn(self, "retry", "Refazer com erro", self.start_retry, icon="refresh")
+        self.buttons = [self.btn_run, self.btn_retry]
         if HAS_LINKEDIN:                       # o app instalado não inclui o módulo do LinkedIn
             self.buttons.append(self.btn_li)
         self.buttons.append(CBtn(self, "dash", "Abrir painel", self.open_dashboard, icon="layout"))
@@ -515,20 +518,31 @@ class Vagas1000App:
     def _load_stats(self):
         try:
             con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
-            open_jobs = con.execute("select count(*) from jobs where status='open'").fetchone()[0]
-            eligible = con.execute("select count(*) from jobs where status='open' and verdict='ELIGIBLE'").fetchone()[0]
-            companies = con.execute("select count(*) from companies where coalesce(adapter,'')<>'importado'").fetchone()[0]
+            c = stats.board_counts(con)
             last = con.execute("select started_at,total,new_count from runs order by run_id desc limit 1").fetchone()
             con.close()
-            self.cards["open"].config(text=f"{open_jobs:,}".replace(",", "."))
-            self.cards["eligible"].config(text=f"{eligible:,}".replace(",", "."))
-            self.cards["companies"].config(text=str(companies))
+            fmt = lambda n: f"{n:,}".replace(",", ".")                                  # noqa: E731
+            # cartões = o que a última leitura CONFIRMOU (bate com a linha "N vagas · N elegíveis" da busca); as vagas de
+            # fontes que não responderam seguem guardadas, mas aparecem à parte, na linha de baixo do título
+            self.cards["open"].config(text=fmt(c["open_confirmed"]))
+            self.cards["eligible"].config(text=fmt(c["eligible_confirmed"]))
+            self.cards["companies"].config(text=str(c["companies"]))
+            self.failed_ids = c["failing_ids"]
             if last and last[0]:
                 dt = _parse(last[0])
                 quando = dt.strftime("%d/%m %H:%M") if dt else last[0]
-                self.sub.config(text=f"base local · última atualização {quando} · {open_jobs:,} vagas abertas".replace(",", "."))
+                txt = f"base local · atualizada {quando} · {fmt(c['open_confirmed'])} confirmadas"
+                if c["failing_ids"]:
+                    txt += (f" · +{fmt(c['unverified_open'])} de {len(c['failing_ids'])} "
+                            f"fonte{'s' if len(c['failing_ids']) > 1 else ''} sem leitura")
+                self.sub.config(text=txt)
         except Exception as e:
             self.sub.config(text=f"base local · banco indisponível ({type(e).__name__})")
+        self._sync_retry_button()
+
+    def _sync_retry_button(self):
+        busy = self.proc is not None and self.proc.poll() is None
+        self.btn_retry.config(state="normal" if (self.failed_ids and not busy) else "disabled")
 
     def _status(self):
         try:
@@ -537,11 +551,19 @@ class Vagas1000App:
             return None
 
     # ------------------------------------------------------------------ ações
-    def start_run(self):
+    def start_retry(self):
+        """Refaz só as fontes cuja última leitura falhou (ex.: a Lever voltou ao ar): segundos, não os ~9 min de uma
+        busca inteira. Nada é fechado nem apagado nas outras fontes."""
+        if self.failed_ids:
+            self.start_run(only=list(self.failed_ids))
+
+    def start_run(self, only: list[str] | None = None):
         if self.proc and self.proc.poll() is None:
             return
         self.mode = "update"
+        self.retry_ids = list(only) if only else None
         self.btn_run.config(state="disabled", text="Atualizando…")
+        self.btn_retry.config(state="disabled")
         self.btn_li.config(state="disabled")
         self.finished = False
         self._last_results = 0
@@ -552,10 +574,11 @@ class Vagas1000App:
         self.log_file = open(logs / "app-run.log", "a", encoding="utf-8")
         self.log_file.write(f"\n=== {datetime.now():%d/%m/%Y %H:%M:%S} atualização pelo app ===\n")
         self.log_file.flush()
-        self._append_log("Atualização iniciada…")
+        self._append_log(f"Refazendo {len(only)} fonte(s) com erro…" if only else "Atualização iniciada…")
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         cmd = [sys.executable] if paths.FROZEN else [sys.executable, str(Path(__file__).resolve())]
-        self.proc = subprocess.Popen(cmd + ["--scrape", "--no-open"], cwd=str(ROOT),
+        args = ["--scrape", "--no-open"] + (["--only", *only] if only else [])
+        self.proc = subprocess.Popen(cmd + args, cwd=str(ROOT),
                                      stdout=self.log_file, stderr=subprocess.STDOUT, creationflags=flags,
                                      env={**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"})  # app-run.log em UTF-8 (antes saía "t�tulo")
 
@@ -838,16 +861,33 @@ class Vagas1000App:
         st = st or {}
         self._frac = 1.0 if st.get("state") == "done" else 0.0
         self._draw_progress()
-        if code == 0 and st.get("state") == "done":
+        retry = self.retry_ids
+        self.retry_ids = None
+        if code == 0 and st.get("state") == "done" and st.get("all_failed"):
+            # nenhuma fonte respondeu (ex.: a Lever ainda fora do ar): nada foi gravado e as vagas guardadas seguem como estavam
             dur = self._duration(st)
-            self._draw_cover("✓")
-            self.now.config(text="Concluído", fg=TEXT)
-            self.detail.config(text=f"{st.get('total_jobs', 0)} vagas · {st.get('eligible', 0)} elegíveis · {dur}")
+            self._draw_cover("!")
+            self.now.config(text="Nenhuma fonte respondeu" if not retry else "Ainda fora do ar", fg=ERR)
+            self.detail.config(text="as vagas guardadas foram mantidas; tente de novo mais tarde")
+            self.badge.config(text=f"{len(st.get('errors') or [])} erro(s)", fg=ERR)
+            self.time.config(text=dur)
+            self._append_log("Nenhuma fonte respondeu: nada foi alterado no banco. Tente de novo mais tarde.")
+        elif code == 0 and st.get("state") == "done":
+            dur = self._duration(st)
             erros = st.get("errors") or []
+            self._draw_cover("✓")
+            if retry:
+                refeitas = len(retry) - len(erros)
+                self.now.config(text="Fontes refeitas", fg=TEXT)
+                self.detail.config(text=f"{refeitas} de {len(retry)} fontes · {st.get('total_jobs', 0)} vagas · {dur}")
+                self._append_log(f"Refeitas: {refeitas} de {len(retry)} fontes, {st.get('total_jobs', 0)} vagas em {dur}")
+            else:
+                self.now.config(text="Concluído", fg=TEXT)
+                self.detail.config(text=f"{st.get('total_jobs', 0)} vagas · {st.get('eligible', 0)} elegíveis · {dur}")
+                self._append_log(f"Concluído: {st.get('total_jobs', 0)} vagas, {st.get('eligible', 0)} elegíveis, "
+                                 f"{len(erros)} erro(s) em {dur}")
             self.badge.config(text=f"{len(erros)} erro(s)" if erros else "sem erros", fg=ERR if erros else MUTED)
             self.time.config(text=dur)
-            self._append_log(f"Concluído: {st.get('total_jobs', 0)} vagas, {st.get('eligible', 0)} elegíveis, "
-                             f"{len(erros)} erro(s) em {dur}")
         else:
             self._draw_cover("!")
             self.now.config(text="A atualização falhou", fg=ERR)
