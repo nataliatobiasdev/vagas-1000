@@ -59,6 +59,16 @@ CMD_FILE_NAME = "panel-cmd.json"
 EMBED_FAILED = 3                     # código de saída de run_embedded quando não deu para embutir (o app abre o navegador)
 
 
+def _utf8_streams() -> None:
+    """stdout/stderr redirecionados (CI, arquivo de log do filho) caem no cp1252 do Windows: o título do painel
+    ("vagas1000 · Painel") vira lixo no log e `print` do autoteste quebra com UnicodeEncodeError. Fixa UTF-8."""
+    for s in (sys.stdout, sys.stderr):
+        try:
+            s.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
 def _trace(msg: str) -> None:
     """Diagnóstico do painel embutido: vai para o stderr (o autoteste do CI recolhe e publica)."""
     try:
@@ -83,8 +93,11 @@ def send_route(route: str) -> None:
 
 
 def embed_url(path: Path, route: str) -> str:
-    """`?embed=1` esconde as abas internas do painel: quem escolhe a aba é a janela principal."""
-    return path.resolve().as_uri() + "?embed=1" + (route if route.startswith("#") else "#/")
+    """`#embed|<rota>` esconde as abas internas do painel: quem escolhe a aba é a janela principal.
+
+    A marca vai no fragmento (#) e NÃO numa query (`?embed=1`): o WebView2 trata a query de uma URL `file://` como
+    parte do nome do arquivo e mostra ERR_FILE_NOT_FOUND."""
+    return path.resolve().as_uri() + "#embed|" + (route if route.startswith("#") else "#/")
 
 
 def run_embedded(parent: int, route: str = "#/") -> int:
@@ -99,6 +112,7 @@ def run_embedded(parent: int, route: str = "#/") -> int:
     import ctypes
     from ctypes import wintypes
 
+    _utf8_streams()
     try:
         import webview
     except Exception as e:
@@ -135,6 +149,29 @@ def run_embedded(parent: int, route: str = "#/") -> int:
         u32.GetClientRect(parent, ctypes.byref(r))
         return r.right - r.left, r.bottom - r.top
 
+    def js(win, script, timeout=4.0):
+        """`evaluate_js` com prazo. O pywebview espera o resultado num semáforo SEM limite: numa janela reparentada
+        que não responde (ou se a tarefa do ExecuteScriptAsync falhar) a chamada nunca volta e o worker inteiro
+        travava, deixando o processo vivo. Aqui a chamada roda numa thread descartável; sem resposta, devolve None."""
+        import threading
+        box = {}
+
+        def call():
+            try:
+                box["v"] = win.evaluate_js(script)
+            except Exception as e:                             # pragma: no cover - janela em fechamento
+                box["e"] = e
+
+        t = threading.Thread(target=call, daemon=True)
+        t.start()
+        t.join(timeout)
+        if t.is_alive():
+            _trace(f"evaluate_js sem resposta em {timeout:.0f}s")
+            return None
+        if "e" in box:
+            raise box["e"]
+        return box.get("v")
+
     def worker(win):
         try:
             _worker(win)
@@ -146,6 +183,13 @@ def run_embedded(parent: int, route: str = "#/") -> int:
                 win.destroy()
             except Exception:
                 pass
+            # Destruir uma janela reparentada às vezes trava o desmonte do WebView2 e o processo ficaria órfão
+            # depois que a janela principal some: se ele não terminar sozinho em poucos segundos, termina à força.
+            import os
+            import threading
+            t = threading.Timer(2.5, os._exit, [EMBED_FAILED if state["failed"] else 0])
+            t.daemon = True
+            t.start()
 
     def _worker(win):
         hwnd = 0
@@ -164,6 +208,17 @@ def run_embedded(parent: int, route: str = "#/") -> int:
         u32.SetWindowPos(hwnd, None, 0, 0, max(w, 1), max(h, 1), SWP_NOZORDER | SWP_NOACTIVATE)
         _trace(f"SetParent: pai_anterior={old} pai_atual={u32.GetParent(hwnd)} tamanho={w}x{h}")
         state["failed"] = False
+        info = None
+        for _ in range(8):                                     # confere que a PÁGINA carregou (não um erro do WebView2)
+            try:
+                info = js(win, "[document.querySelectorAll('.card').length, document.documentElement.dataset.embed || '', "
+                               "document.title].join('|')")
+            except Exception:
+                info = None
+            if info and not str(info).startswith("0|"):
+                break
+            time.sleep(1)
+        _trace(f"pagina: {info}")
         last = (w, h)
         while u32.IsWindow(parent):
             size = parent_size()
@@ -184,7 +239,7 @@ def run_embedded(parent: int, route: str = "#/") -> int:
                         state["mtime"] = m
                         win.load_url(embed_url(path, route))
                     else:
-                        win.evaluate_js(f"location.hash = {json.dumps(route)}")
+                        js(win, f"location.hash = {json.dumps(route)}")
                 except Exception as e:                         # pragma: no cover - janela em fechamento
                     _trace(f"painel embutido: {e}")
             time.sleep(0.12)
@@ -214,6 +269,7 @@ def run_embedded_autotest() -> int:
     import tkinter as tk
     from ctypes import wintypes
 
+    _utf8_streams()
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except Exception:
@@ -268,15 +324,25 @@ def run_embedded_autotest() -> int:
     result["exit"] = proc.poll()
     w, h = host.winfo_width(), host.winfo_height()
     root.destroy()                                    # o painel percebe que o pai sumiu e fecha sozinho
-    for _ in range(50):
+    for _ in range(100):                              # até 10 s: o desmonte do WebView2 pode demorar um pouco
         if proc.poll() is not None:
             break
         time.sleep(0.1)
     closed = proc.poll() is not None
     if not closed:
         proc.kill()
+    # O WebView2 roda em processos filhos (msedgewebview2.exe). Matar só o pai os deixa órfãos, e no CI eles
+    # seguram as saídas do passo e a esteira fica esperando até o time-out: derruba a árvore inteira.
+    subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True, check=False)
     size = result["size"] or (0, 0)
-    ok = bool(result["child"] and alive and closed and result["colors"] > 40
+    import re
+    try:
+        log_text = child_log.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        log_text = ""
+    m = re.search(r"pagina: (\d+)\|1\|", log_text)
+    cards = int(m.group(1)) if m else 0                # cards > 0 e embed=1: é a página do painel, não uma tela de erro
+    ok = bool(result["child"] and alive and closed and cards > 0
               and abs(size[0] - w) <= 4 and abs(size[1] - h) <= 4)
     try:
         tail = child_log.read_text(encoding="utf-8", errors="replace")[-1800:]

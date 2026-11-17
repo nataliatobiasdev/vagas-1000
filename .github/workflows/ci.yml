@@ -48,20 +48,35 @@ jobs:
           if ($p.ExitCode -ne 0) { throw "autoteste da janela falhou (código $($p.ExitCode))" }
       - name: Teste do painel embutido na janela (WebView2 como janela filha)
         shell: pwsh
+        timeout-minutes: 5                  # o autoteste leva ~30 s; se travar, falha em minutos e não em 30
         env:
           VAGAS1000_HOME: ${{ runner.temp }}\v1000-demo
         run: |
+          # Sem -Wait: ele espera também os processos órfãos do WebView2, e foi assim que o passo travou por 30 min.
           $p = Start-Process -FilePath "dist\vagas1000\vagas1000.exe" -ArgumentList "--janela-painel","--autoteste-embutido" `
-               -Wait -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\embutido.txt" -RedirectStandardError "$env:RUNNER_TEMP\embutido.err"
+               -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\embutido.txt" -RedirectStandardError "$env:RUNNER_TEMP\embutido.err"
+          $null = $p.Handle                  # sem isso o ExitCode volta vazio quando não se usa -Wait
+          $timedOut = -not $p.WaitForExit(120000)
+          if (-not $p.HasExited) { taskkill /F /T /PID $p.Id 2>$null | Out-Null }
+          Get-Process msedgewebview2, vagas1000 -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           $out = (Get-Content "$env:RUNNER_TEMP\embutido.txt", "$env:RUNNER_TEMP\embutido.err" -ErrorAction SilentlyContinue) -join "`n"
+          if ($timedOut) {
+            $filho = Join-Path $env:VAGAS1000_HOME "logs\painel-embutido-filho.txt"
+            $out += "`n[passou de 120 s e foi encerrado] log do filho:`n" + ((Get-Content $filho -ErrorAction SilentlyContinue) -join "`n")
+          }
           Write-Host $out
-          if ($p.ExitCode -ne 0) {
+          if ($timedOut -or $p.ExitCode -ne 0) {
             # o log do Actions exige login; a anotação de erro é pública e traz o diagnóstico
             $msg = if ($out.Length -gt 3000) { $out.Substring($out.Length - 3000) } else { $out }
             $msg = $msg.Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
             Write-Host "::error title=Autoteste do painel embutido::$msg"
             throw "autoteste do painel embutido falhou (código $($p.ExitCode))"
           }
+          # o log do Actions exige login: publica o resultado também quando passa, como anotação pública
+          $ok = if ($out.Length -gt 1500) { $out.Substring($out.Length - 1500) } else { $out }
+          Write-Host ("::notice title=Autoteste do painel embutido passou::" + $ok.Replace('%','%25').Replace("`r",'').Replace("`n",'%0A'))
+          # o pwsh do Actions termina com `exit $LASTEXITCODE`: sobras do taskkill não podem reprovar um passo que passou
+          $global:LASTEXITCODE = 0
       - name: Instalador Windows (NSIS, por usuário)
         shell: bash
         run: |

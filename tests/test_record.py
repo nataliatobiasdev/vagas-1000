@@ -250,8 +250,22 @@ class PanelWindowTests(unittest.TestCase):
                 cmd = json.loads(panel_window.cmd_file().read_text(encoding="utf-8"))
         self.assertEqual(cmd, {"n": 2, "route": "#/linkedin"})
         url = panel_window.embed_url(Path("C:/x/dashboard.html"), "#/linkedin")
-        self.assertTrue(url.endswith("dashboard.html?embed=1#/linkedin"))
-        self.assertTrue(panel_window.embed_url(Path("C:/x/dashboard.html"), "lixo").endswith("?embed=1#/"))
+        self.assertTrue(url.endswith("dashboard.html#embed|#/linkedin"))
+        self.assertTrue(panel_window.embed_url(Path("C:/x/dashboard.html"), "lixo").endswith("#embed|#/"))
+        self.assertNotIn("?", url)                      # query em file:// vira ERR_FILE_NOT_FOUND no WebView2
+
+    def test_template_reloads_when_the_app_asks_for_a_regenerated_panel(self):
+        """O app regenera o painel e chama load_url(arquivo#embed|rota): só o fragmento muda, então a própria página
+        precisa se recarregar, senão fica com os dados velhos e a rota `#embed|...` (aba LinkedIn vazia)."""
+        html = (Path(__file__).resolve().parent.parent / "scraper" / "templates" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn('if (hashNow().startsWith("#embed|")) location.reload()', html)
+
+    def test_template_decodes_the_escaped_fragment_the_webview_delivers(self):
+        """O WebView2 passa a URL por System.Uri e o fragmento chega escapado ("#embed%7C%23/linkedin"): a página
+        precisa decodificar antes de comparar, senão o modo embutido (abas escondidas) nunca liga dentro do app."""
+        html = (Path(__file__).resolve().parent.parent / "scraper" / "templates" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn("decodeURIComponent(location.hash)", html)
+        self.assertNotIn('location.hash.startsWith("#embed|")', html)
 
     def test_embedded_panel_reports_failure_when_webview_is_unavailable(self):
         import builtins

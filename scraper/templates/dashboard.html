@@ -10,7 +10,7 @@
 :root{
   color-scheme: dark;
   --surface:#0B0E19; --surface-2:#151A2B; --raised:#1C2238; --field:#0E121E;
-  --border:#2C3142; --grid:#1C2238;
+  --border:#2C3142; --border-strong:#626B8D; --grid:#1C2238;
   --ink:#F4F6FF; --ink-2:#A6B1CB; --ink-3:#7D87A3;
   --accent:#9D8CFF; --accent-fg:#0B0E19; --accent-soft:#2A2652; --teal:#42D6CD;
   --ok:#45D6A0; --warn:#F5C66B; --danger:#FF718D;
@@ -26,7 +26,7 @@
   :root:where(:not([data-theme="dark"])){
     color-scheme: light;
     --surface:#F6F7FC; --surface-2:#FFFFFF; --raised:#EEF0F8; --field:#FAFBFF;
-    --border:#DDE1EE; --grid:#EEF0F8;
+    --border:#DDE1EE; --border-strong:#878EA6; --grid:#EEF0F8;
     --ink:#0B0E19; --ink-2:#525C78; --ink-3:#6B7491;
     --accent:#6C5CE7; --accent-fg:#FFFFFF; --accent-soft:#E6E2FD; --teal:#0D8A83;
     --ok:#128058; --warn:#9C6008; --danger:#CD2D50;
@@ -37,7 +37,7 @@
 :root[data-theme="light"]{
   color-scheme: light;
   --surface:#F6F7FC; --surface-2:#FFFFFF; --raised:#EEF0F8; --field:#FAFBFF;
-  --border:#DDE1EE; --grid:#EEF0F8;
+  --border:#DDE1EE; --border-strong:#878EA6; --grid:#EEF0F8;
   --ink:#0B0E19; --ink-2:#525C78; --ink-3:#6B7491;
   --accent:#6C5CE7; --accent-fg:#FFFFFF; --accent-soft:#E6E2FD; --teal:#0D8A83;
   --ok:#128058; --warn:#9C6008; --danger:#CD2D50;
@@ -62,10 +62,13 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;str
 .btn.primary{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 82%,#fff),var(--accent));color:var(--accent-fg);border-color:color-mix(in srgb,var(--accent) 60%,#fff);font-weight:600}
 .btn.ghost{background:transparent;box-shadow:none}
 .btn.sm{padding:4px 10px;font-size:12.5px}
-input[type=search],select,input[type=text]{background:var(--field);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 11px;min-width:0}
-input[type=search]:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 60%,var(--border))}
-.seg{display:inline-flex;background:var(--field);border:1px solid var(--border);border-radius:var(--r-sm);padding:3px;gap:2px}
-.seg button{border:0;background:transparent;border-radius:8px;padding:5px 11px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;color:var(--ink-2);font-weight:500}
+/* Contorno de componentes interativos: --border-strong (>= 3:1, WCAG 1.4.11); --border fica para cards e divisores. */
+input[type=search],select,input[type=text]{background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:7px 11px;min-width:0}
+input[type=search]:focus,select:focus{border-color:var(--accent)}
+input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent);cursor:pointer;flex:none}
+input[type=range]{height:24px;margin:0;accent-color:var(--accent);cursor:pointer}
+.seg{display:inline-flex;background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:8px;padding:5px 11px;min-height:32px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;color:var(--ink-2);font-weight:500}
 .seg button[aria-pressed=true]{background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 22%,transparent),color-mix(in srgb,var(--teal) 18%,transparent));color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 40%,transparent)}
 
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
@@ -109,6 +112,7 @@ h1{font-size:22px;margin:0;font-weight:500;letter-spacing:-.01em}
 .src .n{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-2)}
 .src i{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none} .src.zero i{background:var(--v-block)} .src.err i{background:var(--danger)}
 .src.err{border-color:color-mix(in srgb,var(--danger) 45%,var(--border))}
+.src.nodata i{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-3)}   /* sem leitura: ponto oco, nunca o verde de "ok" */
 .src .e{color:var(--danger);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
 .barrow{display:grid;grid-template-columns:130px 1fr 44px;gap:10px;align-items:center;font-size:13px;border-radius:8px;padding:2px 4px}
 .barrow.click{cursor:pointer} .barrow.click:hover{background:var(--raised)}
@@ -139,9 +143,9 @@ button.pill{cursor:pointer} button.pill:hover{border-color:var(--ink-3)}
 /* ---------- filtros ---------- */
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 10px}
 .filters input[type=search]{min-width:230px}
-.filters label{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-size:13px}
+.filters label{display:inline-flex;align-items:center;gap:8px;color:var(--ink-2);font-size:13px;min-height:32px;cursor:pointer}
 .techs{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 12px}
-.tg{border:1px solid var(--border);background:var(--field);border-radius:999px;padding:3px 11px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.tg{border:1px solid var(--border-strong);background:var(--field);border-radius:999px;padding:3px 12px;min-height:32px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .tg[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
 
 /* ---------- badges ---------- */
@@ -346,7 +350,16 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
 
 <!--__RECORDS__-->
 <script>
-if (/[?&]embed=1/.test(location.search)) document.documentElement.dataset.embed = "1";
+// O WebView2 (via System.Uri do .NET) escapa o fragmento: "#embed|#/linkedin" chega como "#embed%7C%23/linkedin".
+// Por isso o fragmento é sempre decodificado antes de comparar; sem isso o modo embutido nunca ligava no app.
+const hashNow = () => { try { return decodeURIComponent(location.hash); } catch (e) { return location.hash; } };
+if (hashNow().startsWith("#embed|")) {          // aberto dentro do app: "#embed|#/linkedin" (a rota vem depois do "|")
+  document.documentElement.dataset.embed = "1";
+  history.replaceState(null, "", hashNow().slice(7) || "#/");
+}
+// O app pede um painel regenerado (nova atualização/importação) com `load_url(arquivo#embed|<rota>)`. Como só o
+// fragmento muda, o navegador não recarrega a página; aqui ela mesma se recarrega para ler os dados novos.
+window.addEventListener("hashchange", () => { if (hashNow().startsWith("#embed|")) location.reload(); });
 const DATA = /*__DATA__*/null;
 const TECH = {SALESFORCE:"Salesforce",AWS:"AWS",GO:"Go",PYTHON:"Python",TYPESCRIPT_NODE:"TypeScript/Node",ANGULAR_REACT:"Angular/React",GRAPHQL:"GraphQL",AI_GENAI:"IA/GenAI",INTEGRATION_ARCH:"Integração",JAVA:"Java",DOTNET:".NET"};
 const VERD = {ELIGIBLE:"Elegível",MAYBE:"Talvez",BLOCKED:"Bloqueada"};
@@ -403,11 +416,12 @@ const stat = (dot, txt) => `<span class="stat"><i style="background:${dot}"></i>
   const nCo = cs.filter(c => !c.imported).length;
   const ok = cs.filter(c => c.ok === true && c.count > 0), zero = cs.filter(c => c.ok === true && !c.count),
         err = cs.filter(c => c.ok === false), nodata = cs.filter(c => c.ok === null);
-  $("#sumSources").textContent = `${nCo} empresas · ${ok.length} com vagas` + (err.length ? ` · ${err.length} com erro` : "");
+  const nNodata = nodata.filter(c => !c.imported).length;
+  $("#sumSources").textContent = `${nCo} empresas · ${ok.length} com vagas` + (err.length ? ` · ${err.length} com erro` : "") + (nNodata ? ` · ${nNodata} sem leitura` : "");
   let f = "all";
   const draw = () => { const q = $("#srcQ").value.trim().toLowerCase();
     $("#srcGrid").innerHTML = cs.filter(c => (f==="all" || (f==="err"&&c.ok===false) || (f==="zero"&&c.ok===true&&!c.count)) && (!q || c.name.toLowerCase().includes(q)))
-      .map(c => `<div class="src ${c.ok===false?"err":c.ok&&!c.count?"zero":""}" title="${esc(c.error||"")}"><i></i><b>${esc(c.name)}</b>${c.ok===false?`<span class="e">${esc(c.error||"erro")}</span>`:""}<span class="n">${c.ok===null?"—":c.ok?c.count:"✕"}</span></div>`).join("") || '<div class="muted">Nenhuma fonte com esse filtro.</div>'; };
+      .map(c => `<div class="src ${c.ok===false?"err":c.ok&&!c.count?"zero":c.ok===null?"nodata":""}" title="${esc(c.error||(c.ok===null?"Sem leitura na última execução":""))}"><i></i><b>${esc(c.name)}</b>${c.ok===false?`<span class="e">${esc(c.error||"erro")}</span>`:""}<span class="n">${c.ok===null?"—":c.ok?c.count:"✕"}</span></div>`).join("") || '<div class="muted">Nenhuma fonte com esse filtro.</div>'; };
   $("#srcQ").oninput = draw;
   $("#srcF").onclick = e => { const b = e.target.closest("[data-f]"); if(!b) return; f = b.dataset.f; document.querySelectorAll("#srcF button").forEach(x => x.setAttribute("aria-pressed", x===b)); draw(); };
   draw();
