@@ -38,6 +38,10 @@ Abaixo, a lista de vagas em **cards** (ou tabela), com filtros: **só elegíveis
 
 Abra o CAM atualizado pelo menos uma vez. No **painel integrado**, abra uma vaga e clique em **Adicionar ao CAM**. O registro entra no CAM como vaga para candidatar-se, com os dados disponíveis, sem registrar uma candidatura enviada. O botão informa quando a vaga já está no CAM, e os cards e tabelas mostram **No CAM** ou **Candidatura enviada** conforme o acompanhamento. Depois de se candidatar, use **Já me candidatei** no CAM para criar a candidatura e acompanhar suas etapas. A integração não envia a candidatura por você.
 
+::: info Disponibilidade
+Os marcadores nos cards e tabelas estão na `main` e ainda não fazem parte da release pública v1.5.1. Confira a [página de releases e deploys](/entregas) para acompanhar as próximas versões.
+:::
+
 Se o painel for aberto separadamente no navegador, a visualização continua disponível, mas a ponte local com o CAM exige o painel aberto pelo aplicativo.
 
 | Veredito | Significado |
