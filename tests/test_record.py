@@ -250,8 +250,9 @@ class PanelWindowTests(unittest.TestCase):
                 cmd = json.loads(panel_window.cmd_file().read_text(encoding="utf-8"))
         self.assertEqual(cmd, {"n": 2, "route": "#/linkedin"})
         url = panel_window.embed_url(Path("C:/x/dashboard.html"), "#/linkedin")
-        self.assertTrue(url.endswith("dashboard.html?embed=1#/linkedin"))
-        self.assertTrue(panel_window.embed_url(Path("C:/x/dashboard.html"), "lixo").endswith("?embed=1#/"))
+        self.assertTrue(url.endswith("dashboard.html#embed|#/linkedin"))
+        self.assertTrue(panel_window.embed_url(Path("C:/x/dashboard.html"), "lixo").endswith("#embed|#/"))
+        self.assertNotIn("?", url)                      # query em file:// vira ERR_FILE_NOT_FOUND no WebView2
 
     def test_embedded_panel_reports_failure_when_webview_is_unavailable(self):
         import builtins

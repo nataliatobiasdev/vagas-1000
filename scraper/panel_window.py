@@ -83,8 +83,11 @@ def send_route(route: str) -> None:
 
 
 def embed_url(path: Path, route: str) -> str:
-    """`?embed=1` esconde as abas internas do painel: quem escolhe a aba é a janela principal."""
-    return path.resolve().as_uri() + "?embed=1" + (route if route.startswith("#") else "#/")
+    """`#embed|<rota>` esconde as abas internas do painel: quem escolhe a aba é a janela principal.
+
+    A marca vai no fragmento (#) e NÃO numa query (`?embed=1`): o WebView2 trata a query de uma URL `file://` como
+    parte do nome do arquivo e mostra ERR_FILE_NOT_FOUND."""
+    return path.resolve().as_uri() + "#embed|" + (route if route.startswith("#") else "#/")
 
 
 def run_embedded(parent: int, route: str = "#/") -> int:
@@ -171,6 +174,17 @@ def run_embedded(parent: int, route: str = "#/") -> int:
         u32.SetWindowPos(hwnd, None, 0, 0, max(w, 1), max(h, 1), SWP_NOZORDER | SWP_NOACTIVATE)
         _trace(f"SetParent: pai_anterior={old} pai_atual={u32.GetParent(hwnd)} tamanho={w}x{h}")
         state["failed"] = False
+        info = None
+        for _ in range(20):                                    # confere que a PÁGINA carregou (não um erro do WebView2)
+            try:
+                info = win.evaluate_js("[document.querySelectorAll('.card').length, document.documentElement.dataset.embed || '', "
+                                       "document.title].join('|')")
+            except Exception:
+                info = None
+            if info and not str(info).startswith("0|"):
+                break
+            time.sleep(1)
+        _trace(f"pagina: {info}")
         last = (w, h)
         while u32.IsWindow(parent):
             size = parent_size()
@@ -283,7 +297,14 @@ def run_embedded_autotest() -> int:
     if not closed:
         proc.kill()
     size = result["size"] or (0, 0)
-    ok = bool(result["child"] and alive and closed and result["colors"] > 40
+    import re
+    try:
+        log_text = child_log.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        log_text = ""
+    m = re.search(r"pagina: (\d+)\|1\|", log_text)
+    cards = int(m.group(1)) if m else 0                # cards > 0 e embed=1: é a página do painel, não uma tela de erro
+    ok = bool(result["child"] and alive and closed and cards > 0
               and abs(size[0] - w) <= 4 and abs(size[1] - h) <= 4)
     try:
         tail = child_log.read_text(encoding="utf-8", errors="replace")[-1800:]

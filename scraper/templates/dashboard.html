@@ -346,7 +346,10 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
 
 <!--__RECORDS__-->
 <script>
-if (/[?&]embed=1/.test(location.search)) document.documentElement.dataset.embed = "1";
+if (location.hash.startsWith("#embed|")) {      // aberto dentro do app: "#embed|#/linkedin" (a rota vem depois do "|")
+  document.documentElement.dataset.embed = "1";
+  history.replaceState(null, "", location.hash.slice(7) || "#/");
+}
 const DATA = /*__DATA__*/null;
 const TECH = {SALESFORCE:"Salesforce",AWS:"AWS",GO:"Go",PYTHON:"Python",TYPESCRIPT_NODE:"TypeScript/Node",ANGULAR_REACT:"Angular/React",GRAPHQL:"GraphQL",AI_GENAI:"IA/GenAI",INTEGRATION_ARCH:"Integração",JAVA:"Java",DOTNET:".NET"};
 const VERD = {ELIGIBLE:"Elegível",MAYBE:"Talvez",BLOCKED:"Bloqueada"};
