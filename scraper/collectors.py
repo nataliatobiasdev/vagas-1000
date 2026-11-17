@@ -222,18 +222,21 @@ def _fetch(url: str, attempts: int, data: dict | None = None) -> bytes:
             return payload
         except Exception as e:
             last = e
-            if isinstance(e, urllib.error.HTTPError):
-                _HOST_FAILS[host] = 0                       # o servidor respondeu: está no ar
+            if isinstance(e, urllib.error.HTTPError) and e.code < 500:
+                _HOST_FAILS[host] = 0                       # respondeu 4xx (inclui 429): o serviço está no ar
             if i + 1 < attempts:
                 wait = _retry_wait(e, i)
                 log.warning("%s falhou (%s %s); tentando de novo em %.0fs", host, type(e).__name__, str(e)[:80], wait)
                 time.sleep(wait)
     assert last is not None
-    if not isinstance(last, urllib.error.HTTPError) and isinstance(last, (TimeoutError, OSError)):
+    # Sem resposta (timeout, conexão) ou erro 5xx (500/502/504 da Lever numa queda) contam como "serviço fora do ar";
+    # 4xx não: o servidor respondeu.
+    down = isinstance(last, (TimeoutError, OSError)) and not (isinstance(last, urllib.error.HTTPError) and last.code < 500)
+    if down:
         _HOST_FAILS[host] = _HOST_FAILS.get(host, 0) + 1
         if _HOST_FAILS[host] >= HOST_FAIL_LIMIT:
-            _HOST_DOWN[host] = (f"{host} não respondeu em {HTTP_TIMEOUT}s (serviço fora do ar ou bloqueado); "
-                                "as demais empresas dele foram puladas nesta execução — as vagas guardadas continuam")
+            _HOST_DOWN[host] = (f"{host} está fora do ar ({type(last).__name__}: {str(last)[:60]}); as demais empresas dele "
+                                "foram puladas nesta execução — as vagas guardadas continuam")
             log.error("%s", _HOST_DOWN[host])
     raise last
 
