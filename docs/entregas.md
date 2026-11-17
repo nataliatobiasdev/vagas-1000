@@ -6,6 +6,8 @@ Esta página reúne as versões do vagas1000 e as publicações da documentaçã
 
 Cada release listada foi publicada no GitHub com um instalador Windows. As notas completas e o download ficam na página da versão.
 
+Os ajustes visuais e marcadores de acompanhamento que vieram depois da v1.5.1 estão na `main`, aguardando uma nova release.
+
 | Versão | Data | Destaque |
 | --- | --- | --- |
 | [v1.5.1](https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.5.1) | 17/11/2026 | Integração local com o CAM |
