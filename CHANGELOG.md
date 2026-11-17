@@ -4,6 +4,13 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+### Adicionado
+- **Planilha da busca Salesforce sênior no formato do app**: a planilha da captura (17/11) entra com aderência Alta/Média/Baixa, senioridade e tipo de contrato na aba LinkedIn. Antes esses três campos não eram reconhecidos na importação.
+- **Script de busca sem IA** (`linkedin-jobs/exportar_planilha.py`): gera a planilha do mesmo formato usando o Chrome já logado, sem tokens. A aderência e o critério de senioridade são regras transparentes (`linkedin-jobs/planilha.py`); contra a planilha de 17/11 batem em 78% das vagas. Abrir a descrição de cada vaga é opcional (`--detalhes`) e o padrão é não abrir, como no modo seguro.
+
+### Alterado
+- A importação de planilha grava as entradas do dia no histórico (antes a importação não resumia o dia).
+
 ### Adicionado (base do histórico dia a dia; a aba Histórico vem na próxima etapa)
 - **Histórico por data**: o banco passa a guardar só o que mudou, uma linha por (dia, vaga, tipo, campo) em `job_events` (entrou, saiu, voltou, mudou), e um resumo por data em `day_summary` (abertas no fim do dia, entradas, saídas, mudanças, elegíveis, cobertura de fontes). Várias extrações no mesmo dia viram um dia só.
 - **Indicadores modulares** (`config/historico.json`): bloco fixo mais módulos de relevância variável (empresa com grande movimento, elegíveis novas, mudança de veredito, nota, salário, modalidade, vagas reescritas, tecnologia em alta, vagas relâmpago, reaberturas, anomalias e fonte sem leitura).

@@ -370,5 +370,9 @@ def save_import(conn: sqlite3.Connection, jobs: list[Job], companies: list[dict]
         row = conn.execute("SELECT run_id FROM runs ORDER BY run_id DESC LIMIT 1").fetchone()
         run_id = row[0] if row else conn.execute("INSERT INTO runs(started_at) VALUES(?)", (now,)).lastrowid
         new = sum(1 for j in jobs if _upsert_job(conn, j, run_id, now))
+        try:                                             # o dia da importação recebe as entradas (dia a dia)
+            history.refresh_day(conn, history.day_of(now))
+        except Exception:
+            log.exception("histórico: não consegui resumir a importação")
     log.info("banco: %d vagas importadas (%d novas, %d já existiam)", len(jobs), new, len(jobs) - new)
     return {"novas": new, "atualizadas": len(jobs) - new, "run_id": run_id}

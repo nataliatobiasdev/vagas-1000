@@ -35,11 +35,12 @@ ALIASES = {
                     "requisitos_stack", "requisitos", "stack"),
     "workplace": ("workplace", "workplace_type", "modalidade", "modelo", "modelo_de_trabalho", "remoto", "work_model",
                   "modelo_contrato", "modelo_e_contrato"),
-    "commitment": ("employment_type", "tipo", "contrato", "tipo_de_contrato", "jobtype", "tipo_de_emprego", "commitment"),
-    "seniority": ("seniority", "nivel", "senioridade", "experience_level", "nivel_de_experiencia"),
+    "commitment": ("employment_type", "tipo", "contrato", "tipo_de_contrato", "tipo_contrato", "jobtype", "tipo_de_emprego",
+                   "commitment"),
+    "seniority": ("seniority", "nivel", "senioridade", "experience_level", "nivel_de_experiencia", "criterio_senioridade"),
     "salary": ("salary", "salario", "remuneracao", "faixa_salarial", "compensation", "pay", "salario_beneficios"),
     "applicants": ("applicants", "candidatos", "num_applicants", "numero_de_candidatos", "candidaturas"),
-    "fit": ("aderencia", "fit", "match", "afinidade"),
+    "fit": ("aderencia", "fit", "match", "afinidade", "aderencia_salesforce", "aderencia_stack"),
     "notes": ("observacoes", "observacao", "notas", "notes", "obs", "comentarios"),
 }
 LIST_KEYS = ("jobs", "vagas", "results", "resultados", "items", "data", "listings")
