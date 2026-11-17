@@ -138,6 +138,29 @@ def run_embedded(parent: int, route: str = "#/") -> int:
         u32.GetClientRect(parent, ctypes.byref(r))
         return r.right - r.left, r.bottom - r.top
 
+    def js(win, script, timeout=4.0):
+        """`evaluate_js` com prazo. O pywebview espera o resultado num semáforo SEM limite: numa janela reparentada
+        que não responde (ou se a tarefa do ExecuteScriptAsync falhar) a chamada nunca volta e o worker inteiro
+        travava, deixando o processo vivo. Aqui a chamada roda numa thread descartável; sem resposta, devolve None."""
+        import threading
+        box = {}
+
+        def call():
+            try:
+                box["v"] = win.evaluate_js(script)
+            except Exception as e:                             # pragma: no cover - janela em fechamento
+                box["e"] = e
+
+        t = threading.Thread(target=call, daemon=True)
+        t.start()
+        t.join(timeout)
+        if t.is_alive():
+            _trace(f"evaluate_js sem resposta em {timeout:.0f}s")
+            return None
+        if "e" in box:
+            raise box["e"]
+        return box.get("v")
+
     def worker(win):
         try:
             _worker(win)
@@ -175,10 +198,10 @@ def run_embedded(parent: int, route: str = "#/") -> int:
         _trace(f"SetParent: pai_anterior={old} pai_atual={u32.GetParent(hwnd)} tamanho={w}x{h}")
         state["failed"] = False
         info = None
-        for _ in range(20):                                    # confere que a PÁGINA carregou (não um erro do WebView2)
+        for _ in range(8):                                     # confere que a PÁGINA carregou (não um erro do WebView2)
             try:
-                info = win.evaluate_js("[document.querySelectorAll('.card').length, document.documentElement.dataset.embed || '', "
-                                       "document.title].join('|')")
+                info = js(win, "[document.querySelectorAll('.card').length, document.documentElement.dataset.embed || '', "
+                               "document.title].join('|')")
             except Exception:
                 info = None
             if info and not str(info).startswith("0|"):
@@ -205,7 +228,7 @@ def run_embedded(parent: int, route: str = "#/") -> int:
                         state["mtime"] = m
                         win.load_url(embed_url(path, route))
                     else:
-                        win.evaluate_js(f"location.hash = {json.dumps(route)}")
+                        js(win, f"location.hash = {json.dumps(route)}")
                 except Exception as e:                         # pragma: no cover - janela em fechamento
                     _trace(f"painel embutido: {e}")
             time.sleep(0.12)
@@ -296,6 +319,9 @@ def run_embedded_autotest() -> int:
     closed = proc.poll() is not None
     if not closed:
         proc.kill()
+    # O WebView2 roda em processos filhos (msedgewebview2.exe). Matar só o pai os deixa órfãos, e no CI eles
+    # seguram as saídas do passo e a esteira fica esperando até o time-out: derruba a árvore inteira.
+    subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True, check=False)
     size = result["size"] or (0, 0)
     import re
     try:
