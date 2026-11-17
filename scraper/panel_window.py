@@ -11,6 +11,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import sqlite3
+from contextlib import closing
 import sys
 import time
 import webbrowser
@@ -23,6 +26,42 @@ log = logging.getLogger("scraper")
 
 class Api:
     """Ponte JS -> Python (window.pywebview.api.*)."""
+
+    def cam_status(self, key: str):
+        appdata = os.environ.get('APPDATA')
+        path = Path(appdata) / 'CAM' / 'cam.db' if appdata else None
+        if not isinstance(key, str) or not key or not path or not path.is_file():
+            return {'status': 'unavailable'}
+        try:
+            with closing(sqlite3.connect(str(path), timeout=10)) as conn:
+                if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vagas1000_inbox'").fetchone():
+                    return {'status': 'unavailable'}
+                row = conn.execute('SELECT application_id FROM vagas1000_inbox WHERE job_key=?', (key,)).fetchone()
+                return {'status': 'applied' if row and row[0] else 'pending' if row else 'absent'}
+        except sqlite3.Error:
+            log.exception('Falha ao consultar vaga no CAM')
+            return {'status': 'unavailable'}
+
+    def add_to_cam(self, key: str, job: dict, record: dict):
+        """Guarda uma oportunidade pendente no CAM, sem registrar candidatura enviada."""
+        if not isinstance(key, str) or not key or not isinstance(job, dict) or job.get('key') != key:
+            return {'ok': False, 'message': 'Dados da vaga inválidos.'}
+        if not job.get('title') or not job.get('company'):
+            return {'ok': False, 'message': 'A vaga precisa ter cargo e empresa.'}
+        appdata = os.environ.get('APPDATA')
+        path = Path(appdata) / 'CAM' / 'cam.db' if appdata else None
+        if not path or not path.is_file():
+            return {'ok': False, 'message': 'Banco do CAM não encontrado. Abra o CAM atualizado primeiro.'}
+        payload = json.dumps({'vaga': job, 'registro': record, 'bruto': self.get_raw(key)}, ensure_ascii=False)
+        try:
+            with closing(sqlite3.connect(str(path), timeout=10)) as conn, conn:
+                if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vagas1000_inbox'").fetchone():
+                    return {'ok': False, 'message': 'Atualize e abra o CAM antes de adicionar vagas.'}
+                cursor = conn.execute("INSERT OR IGNORE INTO vagas1000_inbox (job_key, payload, added_at) VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))", (key, payload))
+                return {'ok': True, 'already': cursor.rowcount == 0}
+        except sqlite3.Error:
+            log.exception('Falha ao adicionar vaga ao CAM')
+            return {'ok': False, 'message': 'Não foi possível gravar no CAM. Tente novamente.'}
 
     def get_raw(self, key: str):
         """Payload original que a fonte enviou para esta vaga (ou None)."""
@@ -41,7 +80,13 @@ class Api:
 def dashboard_path() -> Path:
     """Garante que o painel existe (gera a partir do banco se ainda não foi gerado)."""
     out = paths.OUT / "dashboard.html"
-    if not out.exists():
+    # Rebuild once after upgrading the bundled template; do not rewrite on every
+    # poll, because the embedded window watches this file's modification time.
+    try:
+        current = out.exists() and 'cam-status-v2' in out.read_text(encoding='utf-8')
+    except OSError:
+        current = False
+    if not current:
         from . import dashboard
         conn = db.connect()
         try:
