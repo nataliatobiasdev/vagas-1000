@@ -215,13 +215,14 @@ class Vagas1000App:
 
     # ------------------------------------------------------------------ UI
     def _build_tabs(self):
-        """Abas da janela: Início (esta tela), Painel de vagas e LinkedIn (o painel aparece DENTRO da janela)."""
+        """Abas da janela: Início (esta tela) e Painel de vagas (o painel aparece DENTRO da janela). A aba do LinkedIn
+        fica dentro do próprio painel."""
         bar = tk.Frame(self.root, bg=BG)
         bar.pack(side="top", fill="x")
         inner = tk.Frame(bar, bg=BG)
         inner.pack(side="left", padx=self.u(22))
         self.tab_w = {}
-        for key, text in (("home", "Início"), ("panel", "Painel de vagas"), ("li", "LinkedIn")):
+        for key, text in (("home", "Início"), ("panel", "Painel de vagas")):
             cell = tk.Frame(inner, bg=BG, cursor="hand2")
             lab = tk.Label(cell, text=text, bg=BG, fg=MUTED, font=FONT_BODY_SB(10), padx=self.u(14), pady=self.u(9),
                            cursor="hand2")
@@ -245,7 +246,7 @@ class Vagas1000App:
             ind.config(bg=ACCENT if k == key else BG)
 
     def show_tab(self, key: str):
-        """Troca a aba. Painel e LinkedIn usam a mesma janela do WebView2, que fica dentro de `panel_host`."""
+        """Troca a aba. O painel é uma janela do WebView2 que fica dentro de `panel_host`."""
         if key != "home" and not (OUT / "dashboard.html").exists():
             self._append_log("Painel ainda não existe — rode uma atualização.")
             key = "home"
@@ -258,13 +259,13 @@ class Vagas1000App:
         self.canvas.pack_forget()
         self.panel_host.pack(fill="both", expand=True)
         self.root.update_idletasks()
-        self._open_panel("#/linkedin" if key == "li" else "#/")
+        self._open_panel("#/")
 
     def _open_panel(self, route: str):
-        """Mostra `route` no painel embutido; abre o processo do painel na primeira vez."""
-        from scraper import panel_window
+        """Mostra o painel embutido; abre o processo dele na primeira vez. Se já está aberto, não mexe na rota: a
+        pessoa volta para a aba interna (Vagas ou LinkedIn) e a vaga em que estava, e os números se atualizam
+        sozinhos quando a busca regrava o arquivo."""
         if self.panel_proc and self.panel_proc.poll() is None:
-            panel_window.send_route(route)
             return
         try:
             cmd = [sys.executable] if paths.FROZEN else [sys.executable, str(Path(__file__).resolve())]
@@ -555,7 +556,8 @@ class Vagas1000App:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         cmd = [sys.executable] if paths.FROZEN else [sys.executable, str(Path(__file__).resolve())]
         self.proc = subprocess.Popen(cmd + ["--scrape", "--no-open"], cwd=str(ROOT),
-                                     stdout=self.log_file, stderr=subprocess.STDOUT, creationflags=flags)
+                                     stdout=self.log_file, stderr=subprocess.STDOUT, creationflags=flags,
+                                     env={**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"})  # app-run.log em UTF-8 (antes saía "t�tulo")
 
     # ------------------------------------------------------------- LinkedIn
     def start_linkedin(self):

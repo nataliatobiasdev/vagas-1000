@@ -236,7 +236,7 @@ class LinkedinTabTests(unittest.TestCase):
                          {"fit": "Alta", "applicants": "53 cliques", "seniority": "Sênior",
                           "notes": "Vaga verificada", "posted": "há 3 dias"})
         self.assertIsNone(by_title["Outra vaga"]["li"])
-        for marker in ('id="tabBtnLi"', 'id="tabLi"', 'data-embed'):          # abas e modo embutido existem no painel
+        for marker in ('id="tabBtnLi"', 'id="tabLi"', 'dataset.embed'):       # a aba do LinkedIn e a marca do modo embutido existem no painel
             self.assertIn(marker, html)
 
 

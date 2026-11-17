@@ -147,5 +147,7 @@ def build(conn: sqlite3.Connection, out_path: Path | str | None = None) -> Path:
                          for i, r in enumerate(records))
     html = (TEMPLATE.read_text(encoding="utf-8").replace("/*__DATA__*/null", payload)
             .replace("/*__FONTS__*/", _font_css()).replace("<!--__RECORDS__-->", rec_tags))
-    out.write_text(html, encoding="utf-8")
+    tmp = out.with_name(out.name + ".tmp")               # grava inteiro e troca: quem lê (painel embutido, navegador) nunca vê o arquivo pela metade
+    tmp.write_text(html, encoding="utf-8")
+    tmp.replace(out)
     return out

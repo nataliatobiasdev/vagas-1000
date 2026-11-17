@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import dashboard, db, paths, reports
-from .collectors import COLLECTORS
+from .collectors import COLLECTORS, reset_host_state
 from .driver import quit_driver, session_alive
 from .filtering import score_job
 from .models import Job
@@ -70,6 +70,7 @@ def write_status(out_dir: Path, **data) -> None:
 
 def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
         driver_factory=None) -> list[Job]:
+    reset_host_state()                                   # o disjuntor de hosts vale só para esta execução
     cfg = load_json(paths.config_file("companies.json"))["companies"]
     profile = load_json(paths.config_file("profile.json"))
     out_dir = out_dir or paths.OUT
