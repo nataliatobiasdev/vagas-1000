@@ -89,19 +89,6 @@ class DbTests(unittest.TestCase):
         data = json.JSONDecoder().raw_decode(html[start:])[0]
         self.assertEqual(data["jobs"][0]["title"], "Vaga </script> teste")
 
-    def test_presenciais_report_groups_bahia(self):
-        from scraper import reports
-        job = Job(company_id="bydbrasil", company_name="BYD Brasil", source="gupy",
-                  title="Inspetor(a) de Qualidade", location="Camaçari, BA",
-                  workplace_type="onsite", url="https://x/1", score=40.0, verdict="MAYBE")
-        db.save_run(self.conn, [job], {"bydbrasil": {"ok": True, "count": 1}})
-        out = reports.build_presenciais(self.conn, Path(self.tmp.name) / "p.md")
-        txt = out.read_text(encoding="utf-8")
-        self.assertIn("Bahia (BA)", txt)
-        self.assertIn("Camaçari, BA", txt)
-        self.assertIn("BYD Brasil", txt)
-        self.assertEqual(reports.estado("Camaçari, BA"), "BA")
-        self.assertEqual(reports.estado("Brasil - BR"), "BR")
 
 
 if __name__ == "__main__":

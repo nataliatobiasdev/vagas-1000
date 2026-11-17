@@ -267,7 +267,7 @@ def run_import(path: Path | str, source: str | None = None) -> dict:
 
     Devolve {"lidas", "novas", "atualizadas", "fonte", "painel"}. Levanta ValueError se o arquivo não servir.
     """
-    from . import dashboard, db, paths, reports
+    from . import dashboard, db, paths
     from .filtering import score_job
     jobs = parse_file(path, source)
     profile = json.loads(paths.config_file("profile.json").read_text(encoding="utf-8"))
@@ -280,7 +280,6 @@ def run_import(path: Path | str, source: str | None = None) -> dict:
         res = db.save_import(conn, jobs, [{"company_id": src, "name": f"{label} (importado)", "adapter": "importado",
                                            "board_url": "", "composite_score": None}])
         out = dashboard.build(conn)
-        reports.build_presenciais(conn, paths.OUT / "presenciais.md")
     finally:
         conn.close()
     return {"lidas": len(jobs), "novas": res["novas"], "atualizadas": res["atualizadas"], "fonte": src, "painel": str(out)}

@@ -9,7 +9,7 @@ Ele abre os portais de vagas de 54 empresas (bancos, fintechs, consultorias, ind
 - **Captura** as vagas das 54 empresas em uma execução, com status por empresa (uma que falha não derruba as outras).
 - **Filtra e pontua** cada vaga: título, tecnologias, senioridade e se *você pode aplicar* (Brasil, LATAM, remoto mundial) ou se a vaga exige estar em outro país.
 - **Guarda o histórico** em SQLite: o que é novo desde a última execução, o que foi encerrado, a nota de cada vaga ao longo do tempo.
-- **Gera o painel** `dashboard.html` (autossuficiente, offline) e o relatório `presenciais.md` agrupado por estado.
+- **Gera o painel** `dashboard.html` (autossuficiente, offline).
 - **Mostra o progresso** na janela, numa barra estilo player: empresa atual, “12 de 54”, tempo, erros.
 - **Busca no LinkedIn** (opcional, só na instalação pelo código-fonte) em modo seguro, usando a sua própria sessão do Chrome.
 
@@ -29,6 +29,6 @@ flowchart LR
   A --> F["filtros + pontuação<br/>profile.json"]
   S --> F
   F --> D[("SQLite<br/>vagas.db")]
-  D --> P["dashboard.html<br/>presenciais.md"]
+  D --> P["dashboard.html"]
   D --> W["janela do app<br/>números e status"]
 ```

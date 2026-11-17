@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from . import dashboard, db, paths, reports
+from . import dashboard, db, paths
 from .collectors import COLLECTORS, reset_host_state
 from .driver import quit_driver, session_alive
 from .filtering import score_job
@@ -138,7 +138,6 @@ def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
             try:
                 db.save_run(conn, jobs, status, cfg)
                 dashboard.build(conn, out_dir / "dashboard.html")
-                reports.build_presenciais(conn, out_dir / "presenciais.md")
             finally:
                 conn.close()
 

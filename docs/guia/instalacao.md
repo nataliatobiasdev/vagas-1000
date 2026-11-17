@@ -29,7 +29,6 @@ Requisito: **Google Chrome**, e só para a Stone (única fonte que usa navegador
   config\profile.json     seu perfil: pesos, tecnologias, senioridade, elegibilidade
   data\vagas.db           banco SQLite
   out\dashboard.html      painel offline
-  out\presenciais.md      vagas presenciais por estado
   out\vagas-latest.json   última captura completa (também .csv)
   logs\scraper.log        log detalhado
 ```

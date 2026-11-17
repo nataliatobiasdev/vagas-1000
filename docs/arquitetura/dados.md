@@ -55,7 +55,6 @@ Os indicadores dos cards são módulos configuráveis em `config/historico.json`
 | --- | --- |
 | `out/dashboard.html` | Painel offline: lista, registros completos (sem o payload bruto), estilos e fontes embutidos |
 | `out/banco-vagas.json` | Exportação completa (`--exportar`): todas as vagas, versões e payload bruto |
-| `out/presenciais.md` | Vagas presenciais agrupadas por estado e cidade |
 | `out/vagas-latest.json` e `.csv` | Captura completa, com `status` por empresa |
 | `out/vagas-AAAAMMDD-HHMMSS.*` | Cópias de cada execução; o projeto guarda as **60 mais recentes** |
 | `out/status.json` | Progresso da execução em andamento (a janela lê a cada 500 ms) |

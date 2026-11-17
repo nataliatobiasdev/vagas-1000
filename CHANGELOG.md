@@ -4,8 +4,12 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 
 ## Não lançado
 
+## [1.5.0] - 2026-11-17
+
+> Histórico dia a dia (base), planilha do LinkedIn no formato do app e remoção do botão “Abrir presenciais”.
+
 ### Removido
-- Botão **Abrir presenciais** da janela (não era usado). O relatório `out/presenciais.md` continua sendo gerado a cada execução.
+- Botão **Abrir presenciais** da janela e o relatório `out/presenciais.md` (não eram usados). O filtro de modalidade “Presencial” no painel continua.
 
 ### Adicionado
 - **Planilha da busca Salesforce sênior no formato do app**: a planilha da captura (17/11) entra com aderência Alta/Média/Baixa, senioridade e tipo de contrato na aba LinkedIn. Antes esses três campos não eram reconhecidos na importação.

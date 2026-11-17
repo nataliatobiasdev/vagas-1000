@@ -168,7 +168,7 @@ com a empresa em extração, progresso (“12 de 54”), tempo e erros. Logs: `l
 
 **Linha de comando:** `run.bat` (captura + painel), `run.bat --show --only stone`, `python main.py --painel`.
 
-Saída em `out/`: `vagas-latest.json`, `vagas-latest.csv`, `dashboard.html`, `presenciais.md` e cópias com data/hora
+Saída em `out/`: `vagas-latest.json`, `vagas-latest.csv`, `dashboard.html` e cópias com data/hora
 (as **60 execuções mais recentes**). Desenvolvimento, empacotamento e testes: [Rodar e contribuir](docs/guia/desenvolvimento.md).
 
 ## LinkedIn (modo seguro, opcional)
@@ -212,16 +212,10 @@ Os parsers rodam contra HTML capturado dos portais reais (`tests/fixtures`).
 - `scraper/db.py` — histórico em SQLite. `scraper/dashboard.py` + `scraper/templates/dashboard.html` — painel.
 - `config/companies.json` — empresas e filtros de URL. `config/profile.json` — seu perfil e pesos.
 
-## Vagas presenciais (onde são)
+## Vagas presenciais
 
-Cada execução gera **`out/presenciais.md`**: todas as vagas presenciais abertas, agrupadas por UF e
-cidade, com empresa, título, nota, veredito e link. A **Bahia aparece primeiro** e empresas chinesas
-são marcadas com 🇨🇳 (BYD Brasil: 44 vagas, 43 em Camaçari/BA). No painel, o filtro de modalidade
-**“Presencial”** mostra a mesma lista.
-
-Cidades da Bahia (Camaçari, Simões Filho, Candeias, Lauro de Freitas, Feira de Santana...) e de MG/AL
-foram adicionadas ao reconhecimento de localização — antes “Camaçari, BA” caía como local indefinido.
-Hoje o relatório lista ~92 presenciais em 14 locais.
+No painel, o filtro de modalidade **“Presencial”** lista as vagas presenciais. (O relatório `presenciais.md` e o botão
+“Abrir presenciais” foram removidos na 1.5.0.)
 
 ## Tempo de execução (medido em 2026-11-16, 54 empresas, 1.207 vagas)
 

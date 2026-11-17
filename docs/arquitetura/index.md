@@ -32,7 +32,7 @@ flowchart TB
 | `scraper/parsers.py` | Interpreta HTML/JSON de cada fonte (testado com fixtures) |
 | `scraper/filtering.py` | Filtros por título, localização e a nota |
 | `scraper/db.py` | Esquema SQLite, `save_run`, reavaliação |
-| `scraper/dashboard.py` / `reports.py` | Painel HTML e relatório de presenciais |
+| `scraper/dashboard.py` / `reports.py` | Painel HTML e exportação do banco (`--exportar`) |
 | `scraper/paths.py` | Onde ficam os arquivos (código-fonte × instalado) |
 | `scraper/theme.py` | Tokens Nevora para o Tk |
 | `scraper/version.py` | Versão única |
