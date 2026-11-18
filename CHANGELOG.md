@@ -2,12 +2,14 @@
 
 Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem [SemVer](https://semver.org/lang/pt-BR/).
 
-## Não lançado
+## [1.6.0] - 2026-11-18
 
 ### Adicionado
+- Botão **Atualizar** na aba LinkedIn do painel: relê o banco, regenera o painel e recarrega a página. Resolve o caso em que, depois de importar uma planilha, a aba seguia mostrando as vagas anteriores.
 - Marcadores **No CAM** e **Candidatura enviada** nos cards e nas tabelas de vagas, atualizados a partir do banco local do CAM.
 
 ### Alterado
+- O painel gerado por versões anteriores é refeito na primeira abertura, para ganhar o botão novo.
 - Botão de integração, estado de sucesso e mensagens seguem o design system Nevora; a documentação descreve a integração e o histórico de entregas.
 
 ## [1.5.1] - 2026-11-17

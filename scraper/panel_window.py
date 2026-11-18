@@ -79,6 +79,19 @@ class Api:
             log.exception('Falha ao adicionar vaga ao CAM')
             return {'ok': False, 'message': 'Não foi possível gravar no CAM. Tente novamente.'}
 
+    def refresh(self):
+        """Regenera o painel a partir do banco (o que o app instalado mostra vem de out/dashboard.html)."""
+        from . import dashboard
+        conn = db.connect()
+        try:
+            dashboard.build(conn, paths.OUT / "dashboard.html")
+        except (OSError, sqlite3.Error) as e:
+            log.exception('Falha ao atualizar o painel')
+            return {'ok': False, 'message': f'{type(e).__name__}: {e}'}
+        finally:
+            conn.close()
+        return {'ok': True}
+
     def get_raw(self, key: str):
         """Payload original que a fonte enviou para esta vaga (ou None)."""
         conn = db.connect()
@@ -99,7 +112,7 @@ def dashboard_path() -> Path:
     # Rebuild once after upgrading the bundled template; do not rewrite on every
     # poll, because the embedded window watches this file's modification time.
     try:
-        current = out.exists() and 'cam-status-v4' in out.read_text(encoding='utf-8')
+        current = out.exists() and 'cam-status-v5' in out.read_text(encoding='utf-8')
     except OSError:
         current = False
     if not current:

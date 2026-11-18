@@ -343,6 +343,7 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
       <select id="liWork" aria-label="Modelo"><option value="">Qualquer modelo</option><option value="remote">Remoto</option><option value="hybrid">Híbrido</option><option value="onsite">Presencial</option></select>
       <select id="liSort" aria-label="Ordenar"><option value="fit">Aderência</option><option value="score">Maior nota</option><option value="company">Empresa</option><option value="applicants">Menos candidaturas</option></select>
       <span class="sub" id="liCount"></span>
+      <button class="btn sm" id="liRefresh" type="button" title="Relê o banco de vagas e recarrega o painel">Atualizar</button>
     </div>
     <div id="liOut"></div>
     <div class="empty" id="liEmpty" hidden></div>
@@ -643,7 +644,7 @@ function setTab(t){
 document.querySelectorAll(".tabs [data-tab]").forEach(b => b.onclick = () => { location.hash = b.dataset.tab === "li" ? "#/linkedin" : "#/"; });
 
 /* ---------- página completa da vaga ---------- */
-/* cam-status-v4 */
+/* cam-status-v5 */
 const fact = (icon, label, val) => val || val === 0 ? `<div class="fact"><dt>${ic(icon)}${label}</dt><dd>${val}</dd></div>` : "";
 const dateFact = iso => iso ? `${esc(fmtDay(iso))} <span class="muted">(${ago(iso)})</span>` : "";
 let homeScroll = 0, viewing = null;
@@ -743,6 +744,12 @@ function route(){
     setTab(h === "#/linkedin" ? "li" : h === "#/" ? "all" : store.get("tab", "all")); if (was) window.scrollTo(0, homeScroll); }
 }
 window.addEventListener("hashchange", route); route();
+$("#liRefresh").onclick = async () => {   // dentro do app: regenera o painel a partir do banco; no navegador só recarrega o arquivo
+  const b = $("#liRefresh"), api = window.pywebview && window.pywebview.api;
+  b.disabled = true; b.textContent = "Atualizando…";
+  try { if (api && api.refresh) { const r = await api.refresh(); if (r && r.ok === false) { b.textContent = "Falhou — tentar de novo"; b.disabled = false; return; } } } catch(e) {}
+  location.reload();
+};
 async function refreshCamStatuses(){
   const api = window.pywebview && window.pywebview.api;
   if (!api || !api.cam_statuses) return;
