@@ -202,6 +202,7 @@ th{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;fo
 th[aria-sort=ascending]::after{content:" ▲"} th[aria-sort=descending]::after{content:" ▼"}
 th[data-k]:hover,th[data-k]:focus-visible{color:var(--ink)}
 th[data-k]:not([aria-sort]):hover::after,th[data-k]:not([aria-sort]):focus-visible::after{content:" ↕";opacity:.55}
+.job-link{color:inherit;text-decoration:none} .job-link:hover b{text-decoration:underline}
 tr.row{cursor:pointer} tr.row:hover td{background:var(--raised)}
 td.sc{white-space:nowrap;font-variant-numeric:tabular-nums;width:92px}
 .scbar{display:inline-block;height:8px;border-radius:999px;background:var(--bar);vertical-align:middle;margin-right:6px}
@@ -622,14 +623,14 @@ function liRender(){
   const rows = liRows();
   $("#liCount").textContent = `${rows.length} de ${liJobs.length}`;
   $("#liEmpty").hidden = rows.length > 0 || !liJobs.length; $("#liEmpty").textContent = "Nenhuma vaga com esses filtros.";
-  $("#liOut").innerHTML = !rows.length ? "" : `<div class="tablewrap"><table class="li-table"><thead><tr><th>Aderência</th><th>Vaga</th><th>Local</th><th>Modelo</th><th>Publicada</th><th>Candidaturas</th><th>Link</th></tr></thead><tbody>` +
+  $("#liOut").innerHTML = !rows.length ? "" : `<div class="tablewrap"><table class="li-table"><thead><tr><th>Aderência</th><th>Vaga</th><th>Local</th><th>Modelo</th><th>Publicada</th><th>Candidaturas</th><th>No LinkedIn</th></tr></thead><tbody>` +
     rows.map(j => { const l = j.li;
       const model = [WORK[j.workplace], COMMIT[j.commitment] || j.commitment].filter(Boolean).join(" · ");
       const sub = [j.company, l.seniority].filter(Boolean).join(" · ");     // requisitos e descrição ficam na página da vaga
       return `<tr class="row" data-go="${esc(j.key)}"><td><span class="badge ${FIT_BADGE[l.fit]||"b-n"}">${esc(l.fit||"—")}</span></td>
-        <td class="ttl"><b>${esc(j.title)}</b> ${camBadge(j)}<div>${esc(sub)}</div>${l.notes ? `<div class="obs1" title="${esc(l.notes)}">${esc(l.notes)}</div>` : ""}</td><td>${esc(j.location)}</td><td>${esc(model)}</td>
+        <td class="ttl"><a class="job-link" href="#/vaga/${encodeURIComponent(j.key)}"><b>${esc(j.title)}</b></a> ${camBadge(j)}<div>${esc(sub)}</div>${l.notes ? `<div class="obs1" title="${esc(l.notes)}">${esc(l.notes)}</div>` : ""}</td><td>${esc(j.location)}</td><td>${esc(model)}</td>
         <td class="muted">${esc(l.posted || (j.posted_at ? ago(j.posted_at) : ""))}</td><td class="muted">${esc(l.applicants)}</td>
-        <td>${j.url ? `<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" data-ext>abrir</a>` : ""}</td></tr>`; }).join("") + "</tbody></table></div>";
+        <td>${j.url ? `<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" data-ext>abrir ↗</a>` : ""}</td></tr>`; }).join("") + "</tbody></table></div>";
 }
 $("#liFit").onclick = e => { const b = e.target.closest("[data-f]"); if (!b) return; liState.fit = b.dataset.f; liRender(); };
 ["liQ","liWork","liSort"].forEach(id => $("#"+id).addEventListener("input", liRender));

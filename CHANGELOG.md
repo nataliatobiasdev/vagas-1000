@@ -9,6 +9,7 @@ Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões se
 - Marcadores **No CAM** e **Candidatura enviada** nos cards e nas tabelas de vagas, atualizados a partir do banco local do CAM.
 
 ### Alterado
+- Na aba LinkedIn, o título da vaga é um link para a página completa (como nos cards da aba Vagas) e a última coluna deixa claro que “abrir ↗” vai para o LinkedIn.
 - O painel gerado por versões anteriores é refeito na primeira abertura, para ganhar o botão novo.
 - Botão de integração, estado de sucesso e mensagens seguem o design system Nevora; a documentação descreve a integração e o histórico de entregas.
 
