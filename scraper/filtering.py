@@ -57,9 +57,13 @@ def classify_eligibility(location: str, workplace: str, profile: dict) -> tuple[
     if _BR_LOC.search(loc):
         return "ELIGIBLE", pts, "local: Brasil"
     if _LATAM_LOC.search(loc):
-        return "ELIGIBLE", pts, "local: América Latina (remoto)"
+        if _REMOTE_LOC.search(loc):
+            return "ELIGIBLE", pts, "local: América Latina (remoto)"
+        return "MAYBE", pts * 0.5, "América Latina sem modalidade confirmada"
     if _WORLD_LOC.search(loc):
-        return "ELIGIBLE", pts, "local: mundial (remoto)"
+        if _REMOTE_LOC.search(loc):
+            return "ELIGIBLE", pts, "local: mundial (remoto)"
+        return "MAYBE", pts * 0.5, "local mundial sem modalidade confirmada"
     if _FOREIGN_LOC.search(loc):
         return "BLOCKED", 0, "local restrito a outro país"
     blocked = _has(loc, profile["eligibility_block"])
@@ -68,7 +72,7 @@ def classify_eligibility(location: str, workplace: str, profile: dict) -> tuple[
         # 'Remoto' (PT) está na lista de elegíveis do profile; 'Remote' sozinho é ambíguo
         if blocked:
             return "BLOCKED", 0, f"local bloqueado: {', '.join(blocked)}"
-        if allowed:
+        if allowed and any(x != 'remoto' for x in allowed):
             return "ELIGIBLE", pts, f"local elegível: {', '.join(allowed[:2])}"
         return "MAYBE", pts * 0.5, "remoto sem país informado"
     if blocked:
@@ -104,7 +108,9 @@ def score_job(job: Job, profile: dict) -> Job:
     reasons: list[str] = []
 
     # título: exclusão dura
-    excl = _has(title, profile["title_exclude"])
+    # Sales Cloud é produto Salesforce, não sinal de cargo comercial.
+    exclusion_title = re.sub(r'\bsales\s+cloud\b', ' ', title)
+    excl = _has(exclusion_title, profile["title_exclude"])
     area_hit = _has(title, profile["title_include_area"])
     if excl:
         reasons.append(f"título excluído: {', '.join(excl)}")
@@ -147,10 +153,13 @@ def score_job(job: Job, profile: dict) -> Job:
     reasons.append(why_loc)
 
     job.score = round(pts_title + pts_tech + pts_sen + pts_el, 1)
+    reasons.append('requisitos obrigatórios e preferências dependem de revisão')
+    if not (job.description or '').strip():
+        reasons.append('descrição não disponível; requisitos não verificados')
     job.reasons = reasons
     if excl or elig == "BLOCKED":
         job.verdict = "BLOCKED"
-    elif job.score >= profile.get("eligible_min_score", 70) and elig == "ELIGIBLE" and core_hits:
+    elif (job.description or '').strip() and job.score >= profile.get("eligible_min_score", 70) and elig == "ELIGIBLE" and core_hits:
         job.verdict = "ELIGIBLE"
     else:
         job.verdict = "MAYBE"

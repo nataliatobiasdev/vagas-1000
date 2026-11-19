@@ -2,6 +2,16 @@
 
 Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.7.0] - 2026-11-19
+
+### Adicionado
+- 21 fontes de vagas, incluindo GFT, SysMap, Compass, Claranet e empresas com portais Gupy e Ashby.
+- Coletor da GFT com paginação conferida e leitura dos detalhes. A atualização acrescenta as novas fontes à configuração existente e guarda uma cópia anterior.
+
+### Corrigido
+- Vagas sem descrição e locais remotos ambíguos ficam como **Talvez** para revisão. O termo Sales Cloud não causa mais exclusão indevida como vaga de vendas.
+- A pontuação informa que requisitos obrigatórios e preferências ainda precisam de revisão.
+
 ## [1.6.0] - 2026-11-18
 
 ### Adicionado

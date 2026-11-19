@@ -1,6 +1,6 @@
 # Fontes de vagas
 
-54 empresas em `config/companies.json`, em 6 tipos de fonte. O campo `adapter` de cada empresa escolhe o coletor em `scraper/collectors.py`.
+As empresas estão em `config/companies.json`. O campo `adapter` de cada empresa escolhe o coletor em `scraper/collectors.py`. A ampliação adiciona portais Gupy, Ashby e GFT; os cadastros existentes são preservados na migração do aplicativo instalado.
 
 | Adaptador | Empresas | Como lê | Precisa de Chrome |
 | --- | --- | --- | --- |
@@ -10,6 +10,9 @@
 | `ashby_api` | 2 | API pública do Ashby | Não |
 | `workday` | 1 (Salesforce) | `POST /wday/cxs/.../jobs` paginado e descrição por `GET` | Não |
 | `stone_portal` | 1 (Stone) | Selenium: portal próprio sem API, paginação por clique | **Sim** |
+| `gft` | 1 (GFT) | Lista pública paginada, com validação do total e leitura dos detalhes | Não |
+
+Os números das demais linhas descrevem o cadastro anterior à ampliação. A Jobgether não foi ativada: seu retorno é muito volumoso e apresentou timeout na validação. Fontes sem coletor validado permanecem na pesquisa, sem entrar na captura automática.
 
 Existem ainda os adaptadores `lever` e `greenhouse` (HTML via Selenium), mantidos como alternativa; nenhuma empresa os usa hoje.
 

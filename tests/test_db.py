@@ -73,6 +73,7 @@ class DbTests(unittest.TestCase):
     def test_rescore_all_uses_current_profile(self):
         prof = json.loads((Path(__file__).parent.parent / "config" / "profile.json").read_text(encoding="utf-8"))
         j = J("a", "1", "Senior Salesforce Developer", verdict="MAYBE", score=1.0)
+        j.description = "Desenvolvimento Salesforce com Apex e LWC."
         db.save_run(self.conn, [j], {"a": {"ok": True, "count": 1}})
         self.assertEqual(db.rescore_all(self.conn, prof), 1)
         r = self.conn.execute("SELECT verdict, score, techs FROM jobs").fetchone()

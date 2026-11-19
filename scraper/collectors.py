@@ -9,7 +9,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
-from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
+from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl, urljoin
 
 from . import db, parsers
 from .driver import session_alive
@@ -402,6 +402,66 @@ def collect_greenhouse_api(driver, cfg: dict, max_details: int = 120) -> list[Jo
     return jobs
 
 
+def collect_gft(driver, cfg: dict, max_details: int = 150) -> list[Job]:
+    """Lista pública da GFT, com paginação validada antes de registrar sucesso."""
+    from bs4 import BeautifulSoup
+    url = cfg["board_url"]
+    seen_pages, jobs = set(), {}
+    expected = None
+    while url:
+        if url in seen_pages or len(seen_pages) >= 100:
+            raise ValueError("paginação GFT repetida ou acima do limite")
+        seen_pages.add(url)
+        soup = BeautifulSoup(_get_text(url), "lxml")
+        label = soup.select_one(".pagination-bottom .paginationLabel")
+        rows = soup.select("tr.data-row")
+        if not label:
+            raise ValueError("GFT: contador de resultados ausente")
+        counts = [int(x.get_text(strip=True).replace('.', '')) for x in label.select('b')[-1:] if x.get_text(strip=True).replace('.', '').isdigit()]
+        if not counts:
+            raise ValueError("GFT: total de resultados ilegível")
+        if expected is None:
+            expected = counts[0]
+        elif expected != counts[0]:
+            raise ValueError("GFT: total mudou durante a paginação")
+        for row in rows:
+            link = row.select_one('a.jobTitle-link[href]')
+            if not link:
+                raise ValueError("GFT: vaga sem link")
+            href = urljoin(url, link['href'])
+            jid = urlparse(href).path.rstrip('/').split('/')[-1]
+            if not jid or jid in jobs:
+                raise ValueError("GFT: identificador vazio ou repetido")
+            location = row.select_one('.colLocation .jobLocation')
+            workplace = row.select_one('.jobShifttype')
+            jobs[jid] = Job(company_id=cfg['company_id'], company_name=cfg['name'], source='gft',
+                            job_id=jid, title=link.get_text(' ', strip=True), url=href,
+                            location=location.get_text(' ', strip=True) if location else '',
+                            workplace_type=parsers._workplace(workplace.get_text(' ', strip=True) if workplace else ''))
+        if len(jobs) >= expected:
+            break
+        next_link = soup.select_one('.pagination-bottom .current-page')
+        parent = next_link.find_parent('li') if next_link else None
+        sibling = parent.find_next_sibling('li') if parent else None
+        next_link = sibling.find('a', href=True) if sibling else None
+        if not rows or not next_link:
+            raise ValueError("GFT: paginação incompleta")
+        url = urljoin(url, next_link['href'])
+        _pause(0.5, 1.0)
+    if len(jobs) != expected:
+        raise ValueError("GFT: quantidade coletada difere do total")
+    result = _post_process(list(jobs.values()), cfg)
+    def detail(job):
+        soup = BeautifulSoup(_get_text(job.url), 'lxml')
+        content = soup.select_one('[itemprop="description"] .jobdescription')
+        if not content:
+            raise ValueError('GFT: descrição ausente')
+        return {'description': content.get_text(' ', strip=True), 'description_html': parsers.clean_html(str(content))}
+    if cfg.get('fetch_details', True):
+        _fetch_details(result, cfg, detail, int(cfg.get('max_details', max_details)), (0.4, 0.9), 'GFT')
+    return result
+
+
 # ---------------------------------------------------------------- Stone
 def _stone_signature(driver) -> str:
     """Identifica a página atual pela lista de links das vagas (/oportunidades/ID)."""
@@ -456,4 +516,4 @@ def collect_stone(driver, cfg: dict, max_pages: int = 15, max_details: int = 120
 COLLECTORS = {"lever": collect_lever, "lever_api": collect_lever_api,
               "greenhouse": collect_greenhouse, "greenhouse_api": collect_greenhouse_api,
               "ashby_api": collect_ashby_api, "gupy": collect_gupy,
-              "workday": collect_workday, "stone_portal": collect_stone}
+              "workday": collect_workday, "stone_portal": collect_stone, "gft": collect_gft}

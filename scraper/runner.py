@@ -16,7 +16,7 @@ from .models import Job
 log = logging.getLogger("scraper")
 ROOT = paths.HOME
 NEEDS_BROWSER = {"stone_portal", "lever", "greenhouse"}   # adaptadores que dependem do Chrome
-DETAIL_CACHED = {"gupy", "workday"}                       # adaptadores que reabrem 1 página por vaga
+DETAIL_CACHED = {"gupy", "workday", "gft"}                # adaptadores que reabrem 1 página por vaga
 
 
 def _known_details(company_id: str) -> dict:
