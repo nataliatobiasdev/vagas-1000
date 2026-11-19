@@ -9,6 +9,9 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
+from datetime import timezone
+from email.utils import parsedate_to_datetime
+import xml.etree.ElementTree as ET
 from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl, urljoin
 
 from . import db, parsers
@@ -192,8 +195,11 @@ def _retry_wait(e: Exception, i: int) -> float:
         try:
             retry_after = float(e.headers.get("Retry-After", "") or 0)
         except (TypeError, ValueError, AttributeError):
-            retry_after = 0.0
-        return min(max(retry_after, 10.0 * (2 ** i)), 60.0)
+            try:
+                retry_after = max(0.0, (parsedate_to_datetime(e.headers.get('Retry-After', '')) - datetime.now(timezone.utc)).total_seconds())
+            except (TypeError, ValueError, AttributeError, OverflowError):
+                retry_after = 0.0
+        return max(retry_after, min(10.0 * (2 ** i), 60.0))
     return 2.0
 
 
@@ -224,8 +230,13 @@ def _fetch(url: str, attempts: int, data: dict | None = None) -> bytes:
             last = e
             if isinstance(e, urllib.error.HTTPError) and e.code < 500:
                 _HOST_FAILS[host] = 0                       # respondeu 4xx (inclui 429): o serviço está no ar
+            if isinstance(e, urllib.error.HTTPError) and e.code == 403:
+                break  # bloqueio de acesso: não insistir nem tentar contorná-lo
             if i + 1 < attempts:
                 wait = _retry_wait(e, i)
+                if isinstance(e, urllib.error.HTTPError) and e.code == 429 and wait > 60:
+                    log.warning('%s pediu espera de %.0fs; adiando a fonte para outra execução', host, wait)
+                    break
                 log.warning("%s falhou (%s %s); tentando de novo em %.0fs", host, type(e).__name__, str(e)[:80], wait)
                 time.sleep(wait)
     assert last is not None
@@ -462,6 +473,46 @@ def collect_gft(driver, cfg: dict, max_details: int = 150) -> list[Job]:
     return result
 
 
+def collect_gft_rss(driver, cfg: dict, max_details: int = 150) -> list[Job]:
+    """Feed oficial complementar: amostra recente, nunca um retrato completo do portal."""
+    payload = _get_text(cfg['board_url'])
+    try:
+        root = ET.fromstring(payload)
+    except ET.ParseError as e:
+        raise ValueError('GFT RSS: XML inválido') from e
+    channel = root.find('channel')
+    if root.tag != 'rss' or channel is None:
+        raise ValueError('GFT RSS: feed inválido')
+    result = []
+    for item in channel.findall('item'):
+        link = (item.findtext('link') or '').strip()
+        title = (item.findtext('title') or '').strip()
+        parsed = urlparse(link)
+        if parsed.scheme != 'https' or parsed.netloc != 'jobs.gft.com' or not parsed.path.startswith('/job/') or not title:
+            raise ValueError('GFT RSS: vaga sem título ou link válido')
+        jid = parsed.path.rstrip('/').split('/')[-1]
+        raw_description = item.findtext('description') or ''
+        html = parsers.clean_html(raw_description)
+        location = ''
+        match = re.search(r'\(([^()]*(?:\bBR\b|Brasil|Brazil)[^()]*)\)\s*$', title, re.I)
+        if match:
+            location = match.group(1).strip()
+            title = title[:match.start()].strip()
+        date = item.findtext('pubDate') or ''
+        try:
+            posted_at = parsedate_to_datetime(date).isoformat()
+        except (TypeError, ValueError, OverflowError):
+            posted_at = ''
+        result.append(Job(company_id=cfg['company_id'], company_name=cfg['name'], source='gft_rss',
+                          job_id=jid, title=title, url=f'https://jobs.gft.com{parsed.path}',
+                          location=location, workplace_type=parsers._workplace(title),
+                          description=parsers.html_to_text(html), description_html=html,
+                          posted_at=posted_at, raw={'feed_item': {x.tag: x.text for x in item}},
+                          metadata={'cobertura': 'feed parcial: publicações recentes'}))
+    log.info('[%s] feed parcial: %d vagas recentes; ausências não indicam encerramento', cfg['company_id'], len(result))
+    return _post_process(result, cfg)
+
+
 # ---------------------------------------------------------------- Stone
 def _stone_signature(driver) -> str:
     """Identifica a página atual pela lista de links das vagas (/oportunidades/ID)."""
@@ -516,4 +567,5 @@ def collect_stone(driver, cfg: dict, max_pages: int = 15, max_details: int = 120
 COLLECTORS = {"lever": collect_lever, "lever_api": collect_lever_api,
               "greenhouse": collect_greenhouse, "greenhouse_api": collect_greenhouse_api,
               "ashby_api": collect_ashby_api, "gupy": collect_gupy,
-              "workday": collect_workday, "stone_portal": collect_stone, "gft": collect_gft}
+              "workday": collect_workday, "stone_portal": collect_stone, "gft": collect_gft,
+              "gft_rss": collect_gft_rss}

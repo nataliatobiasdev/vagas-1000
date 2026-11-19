@@ -871,6 +871,15 @@
       "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
       "fetch_details": true,
       "composite_score": 0
+    },
+    {
+      "company_id": "gft_rss",
+      "name": "GFT Technologies (feed parcial)",
+      "adapter": "gft_rss",
+      "board_url": "https://jobs.gft.com/services/rss/category/?catid=4412501",
+      "partial_feed": true,
+      "fetch_details": false,
+      "composite_score": 0
     }
   ]
 }

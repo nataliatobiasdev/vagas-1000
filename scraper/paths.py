@@ -66,6 +66,19 @@ def ensure_config() -> Path:
                 tmp = user_file.with_suffix('.json.tmp')
                 tmp.write_text(json.dumps(user, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
                 tmp.replace(user_file)
+            migration = 'gft_feed_parcial_20261119'
+            applied = user.get('_migrations', [])
+            if migration not in applied:
+                defaults = json.loads(default_file.read_text(encoding='utf-8'))
+                have = {c['company_id'] for c in user['companies']}
+                user['companies'].extend(c for c in defaults['companies'] if c['company_id'] == 'gft_rss' and c['company_id'] not in have)
+                user['_migrations'] = [*applied, migration]
+                backup = user_file.with_name('companies.pre-gft-feed-20261119.json')
+                if not backup.exists():
+                    shutil.copy2(user_file, backup)
+                tmp = user_file.with_suffix('.json.tmp')
+                tmp.write_text(json.dumps(user, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+                tmp.replace(user_file)
     return CONFIG
 
 
