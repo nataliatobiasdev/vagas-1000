@@ -1,6 +1,6 @@
 # Releases e deploys
 
-Esta página reúne as versões do vagas1000 e as publicações da documentação. O histórico abaixo foi consultado em **17/11/2026**; os links levam ao GitHub para consultar novas entregas. As datas usam o horário de São Paulo.
+Esta página reúne as versões do vagas1000 e as publicações da documentação. O histórico foi consultado em **19/11/2026**; os links levam ao GitHub para consultar novas entregas. As datas usam o horário de São Paulo.
 
 ## Versões do aplicativo
 
@@ -8,6 +8,9 @@ Cada release listada foi publicada no GitHub com um instalador Windows. As notas
 
 | Versão | Data | Destaque |
 | --- | --- | --- |
+| [v1.7.1](https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.7.1) | 19/11/2026 | Feed parcial da GFT e tratamento de 403 e 429 |
+| [v1.7.0](https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.7.0) | 19/11/2026 | 21 fontes adicionais, GFT paginada e ajustes de classificação |
+| [v1.6.0](https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.6.0) | 18/11/2026 | Atualização da aba LinkedIn e marcadores de acompanhamento no CAM |
 | [v1.5.1](https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.5.1) | 17/11/2026 | Integração local com o CAM |
 | [v1.5.0](https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.5.0) | 17/11/2026 | Histórico diário e importação de planilha LinkedIn |
 | [v1.4.0](https://github.com/nataliatobiasdev/vagas-1000/releases/tag/v1.4.0) | 17/11/2026 | Indicadores da janela e refazer fontes com erro |
@@ -26,6 +29,8 @@ O workflow **Docs** publica o site no GitHub Pages quando a documentação é al
 
 | Data | Publicação | Execução |
 | --- | --- | --- |
+| 19/11/2026 | Documentação das novas fontes | [Ver deploy](https://github.com/nataliatobiasdev/vagas-1000/actions/runs/44495198760) |
+| 17/11/2026 | Integração CAM e Nevora | [Ver deploy](https://github.com/nataliatobiasdev/vagas-1000/actions/runs/44168223574) |
 | 17/11/2026 | Histórico e planilha LinkedIn | [Ver deploy](https://github.com/nataliatobiasdev/vagas-1000/actions/runs/44140400237) |
 | 17/11/2026 | Busca e abas do painel | [Ver deploy](https://github.com/nataliatobiasdev/vagas-1000/actions/runs/44075687405) |
 | 17/11/2026 | Atualização da documentação 1.3 | [Ver deploy](https://github.com/nataliatobiasdev/vagas-1000/actions/runs/44070469133) |

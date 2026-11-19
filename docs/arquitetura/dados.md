@@ -32,7 +32,7 @@ stateDiagram-v2
 - **Nada é apagado**: vaga encerrada continua com todos os campos e ganha `closed_at`.
 - **Captura parcial não apaga**: campo que a execução de hoje não trouxe (detalhe não reaberto) mantém o valor já guardado.
 - **Versões**: `content_hash` resume título, texto, local e salário; se mudar, nasce uma linha em `job_versions` e `versions` sobe.
-- **Detalhes em cache** (Gupy e Workday): o detalhe lido há menos de 7 dias é reaproveitado do banco; a primeira execução lê tudo, as seguintes só o que é novo ou velho.
+- **Detalhes em cache** (Gupy, Workday e GFT): o detalhe lido há menos de 7 dias é reaproveitado do banco; as execuções seguintes priorizam o que é novo ou antigo, dentro do limite configurado.
 - **Migração**: bancos antigos ganham as colunas novas ao abrir (`PRAGMA user_version = 2`); só acrescenta, nunca altera nem apaga.
 
 ## Histórico dia a dia
@@ -43,6 +43,7 @@ O **dia é a data** (calendário, horário local) em que a extração começou. 
 - **Mudou**: um evento por campo. Voltar ao valor de antes no mesmo dia apaga o evento. Campo que estava vazio e foi preenchido depois (detalhe aberto numa busca seguinte) **não** conta; salário que aparece conta. Nota só entra com mudança de 10 pontos ou mais.
 - **Linha de base**: o primeiro dia do banco não tem "entradas"; é o ponto de partida.
 - **Fonte sem leitura** nunca fecha vagas; o resumo do dia lista as fontes que falharam (`failing`) e quantas vagas guardadas ficaram sem verificação (`unverified_open`).
+- **Feed parcial da GFT**: as vagas que deixam de aparecer no feed não são automaticamente encerradas, pois o feed contém apenas publicações recentes.
 - **Dia sem extração**: o resumo do dia seguinte traz `gap_days`; as mudanças aparecem nele, acumuladas.
 - **Perfil**: se o `profile.json` muda, quase todas as vagas trocam de veredito de uma vez; nesse caso a execução não gera eventos de veredito/nota.
 - **Migração**: o primeiro uso da versão com histórico reconstrói os eventos a partir de `jobs`, `job_versions` e `job_snapshots` e guarda antes uma cópia em `vagas.db.bak-antes-do-historico`.

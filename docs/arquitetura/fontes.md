@@ -1,18 +1,19 @@
 # Fontes de vagas
 
-As empresas estão em `config/companies.json`. O campo `adapter` de cada empresa escolhe o coletor em `scraper/collectors.py`. A ampliação adiciona portais Gupy, Ashby e GFT; os cadastros existentes são preservados na migração do aplicativo instalado.
+As 76 fontes do cadastro padrão da versão 1.7.1 estão em `config/companies.json`. O campo `adapter` escolhe o coletor em `scraper/collectors.py`; uma das fontes é o feed parcial adicional da GFT. Os cadastros existentes são preservados na migração do aplicativo instalado.
 
-| Adaptador | Empresas | Como lê | Precisa de Chrome |
+| Adaptador | Fontes | Como lê | Precisa de Chrome |
 | --- | --- | --- | --- |
-| `gupy` | 24 | Lista no `__NEXT_DATA__` do portal (SSR); descrição em `/jobs/{id}` só das vagas que passaram nos filtros | Não |
+| `gupy` | 36 | Lista no `__NEXT_DATA__` do portal (SSR); descrição em `/jobs/{id}` só das vagas que passaram nos filtros | Não |
 | `greenhouse_api` | 22 | API pública do board, com a descrição completa | Não |
 | `lever_api` | 4 | API pública do Lever | Não |
-| `ashby_api` | 2 | API pública do Ashby | Não |
+| `ashby_api` | 10 | API pública do Ashby | Não |
 | `workday` | 1 (Salesforce) | `POST /wday/cxs/.../jobs` paginado e descrição por `GET` | Não |
 | `stone_portal` | 1 (Stone) | Selenium: portal próprio sem API, paginação por clique | **Sim** |
 | `gft` | 1 (GFT) | Lista pública paginada, com validação do total e leitura dos detalhes | Não |
+| `gft_rss` | 1 (GFT) | Feed público de publicações recentes; cobertura parcial | Não |
 
-Os números das demais linhas descrevem o cadastro anterior à ampliação. A Jobgether não foi ativada: seu retorno é muito volumoso e apresentou timeout na validação. Fontes sem coletor validado permanecem na pesquisa, sem entrar na captura automática.
+A Jobgether não foi ativada: seu retorno apresentou timeout na validação. O feed da GFT não é uma segunda listagem completa: as vagas ausentes nele não são automaticamente encerradas e uma vaga pode aparecer nas duas fontes. A listagem completa pode responder 403; nesse caso as vagas guardadas são preservadas.
 
 Existem ainda os adaptadores `lever` e `greenhouse` (HTML via Selenium), mantidos como alternativa; nenhuma empresa os usa hoje.
 
@@ -49,7 +50,7 @@ O bloco internacional (Sezzle, Clara, Homeward, Engine, Coderio, Luxury Presence
 
 ## Limites conhecidos
 
-- **Workday responde 429** quando a velocidade sobe. O coletor usa recuo (8 a 24 s) e pausas de 3 a 6 s, e ainda assim algumas descrições falham (veja o [relatório de testes](/qualidade/relatorio)). A Salesforce leva ~85 s, a maior parte do tempo da captura sem navegador.
+- **Workday pode responder 429**. O coletor aplica esperas e respeita `Retry-After`; esperas superiores a um minuto adiam a fonte para outra execução. Algumas descrições podem falhar mesmo quando a lista responde.
 - **Gupy**: alguns portais migraram e hoje respondem 404 (`unico`, `picpay`, `atta`, `hiplatform`), por isso ficaram fora. Afya e Dock estão sem vaga técnica hoje.
 - **Sem feed público**: Mercado Livre, OLX, Magalu, EPAM, BairesDev e outras usam portal próprio ou só LinkedIn. Entrar exigiria um scraper à parte, como o da Stone.
 - **Coinbase** devolve 403; **Toptal** também.

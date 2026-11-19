@@ -7,12 +7,13 @@
 | Elemento | O que faz |
 | --- | --- |
 | Cartões | Vagas abertas, elegíveis e empresas, lidos do banco local |
-| **Atualizar base** | Captura as 54 empresas, grava no banco e regenera o painel |
+| **Atualizar base** | Captura as fontes configuradas, grava no banco e regenera o painel |
+| **Refazer com erro** | Tenta novamente as fontes que falharam na última leitura, sem refazer as demais |
 | Abas **Início** e **Painel de vagas** | Trocam o conteúdo da própria janela: o painel (`out/dashboard.html`) aparece dentro dela, sem abrir outra. A aba do LinkedIn fica dentro do painel; ele se atualiza sozinho quando a busca termina |
 | **Abrir painel** | Atalho para a aba **Painel de vagas** |
 | **Abrir pasta** | Abre a pasta de dados |
 | **Importar vagas** | Traz vagas captadas fora do app (LinkedIn, planilha) para o banco: veja [Seu banco de vagas](/guia/banco-de-vagas#trazer-vagas-de-fora-linkedin-planilha) |
-| Barra inferior | Empresa em extração, progresso (“12 de 54”), tempo e erros, ao vivo |
+| Barra inferior | Fonte em extração, progresso, tempo e erros, ao vivo |
 
 A atualização leva alguns minutos. A maior parte do tempo é a Salesforce (Workday limita a velocidade) e a Stone (navegador). O app acompanha também uma execução iniciada pela linha de comando, lendo `out/status.json`.
 
@@ -42,9 +43,11 @@ Se o painel for aberto separadamente no navegador, a visualização continua dis
 
 | Veredito | Significado |
 | --- | --- |
-| **ELIGIBLE** | Nota de pelo menos 70, local em que você pode aplicar e uma tecnologia do seu perfil |
-| **MAYBE** | Abaixo do corte, sem tecnologia do perfil, ou com local ambíguo |
+| **ELIGIBLE** | Nota de pelo menos 70, local elegível, descrição disponível e uma tecnologia do perfil |
+| **MAYBE** | Abaixo do corte, sem tecnologia do perfil ou descrição, ou com local ambíguo |
 | **BLOCKED** | Título excluído ou local que exige estar em outro país |
+
+A nota é uma triagem por termos, não uma confirmação de todos os requisitos, idioma, certificações ou preferências. Leia a vaga antes de decidir.
 
 ## Linha de comando
 

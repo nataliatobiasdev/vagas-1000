@@ -19,7 +19,9 @@ O instalador não é assinado. Na primeira execução o SmartScreen mostra “Ed
 | Desinstalar | Configurações do Windows → Aplicativos, ou `Desinstalar.exe` na pasta do programa |
 | Ao desinstalar | A pasta `%APPDATA%\vagas1000` **nunca é apagada** |
 
-Requisito: **Google Chrome**, e só para a Stone (única fonte que usa navegador). Sem Chrome as outras 53 empresas funcionam normalmente e a Stone aparece como erro no relatório.
+Requisito: **Google Chrome**, e só para a Stone (única fonte que usa navegador). Sem Chrome, as demais fontes ainda podem ser consultadas e a Stone aparece como erro no relatório.
+
+Ao atualizar a partir de uma versão anterior, o app acrescenta as novas fontes à configuração existente sem substituir entradas personalizadas e cria cópias da configuração antes das migrações.
 
 ### Onde fica o que
 

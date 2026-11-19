@@ -6,7 +6,7 @@ O vagas1000 não é só uma lista de links. Cada vaga que ele vê fica **guardad
 
 | Grupo | Campos |
 | --- | --- |
-| **Identificação** | Empresa, título, fonte (Greenhouse, Lever, Ashby, Gupy, Workday, Stone), id na fonte, número da requisição |
+| **Identificação** | Empresa, título, fonte (Greenhouse, Lever, Ashby, Gupy, Workday, GFT ou Stone), id na fonte, número da requisição |
 | **Onde e como** | Local principal, **todos** os locais, modalidade (remoto, híbrido, presencial), tipo de contrato, área e time |
 | **Remuneração** | Faixa salarial como a fonte publicou, mínimo, máximo, moeda e período (quando a fonte informa) |
 | **Datas** | Publicação, última edição na fonte, prazo de inscrição, primeira e última vez que você a viu, quando saiu do ar |

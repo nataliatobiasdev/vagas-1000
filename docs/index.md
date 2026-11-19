@@ -4,7 +4,7 @@ title: Início
 hero:
   name: vagas1000
   text: Documentação técnica
-  tagline: App desktop Windows que captura vagas de TI de 54 empresas, pontua pelo seu perfil e entrega um painel offline com o que dá para aplicar.
+  tagline: App desktop Windows que consulta fontes de vagas de TI, pontua pelo seu perfil e apresenta os resultados em um painel offline.
   image:
     src: /logo.png
     alt: Ícone do vagas1000, uma lupa em gradiente violeta e teal
@@ -19,8 +19,8 @@ hero:
       text: Ver no GitHub
       link: https://github.com/nataliatobiasdev/vagas-1000
 features:
-  - title: 54 empresas, 6 fontes
-    details: Gupy, Greenhouse, Lever, Ashby, Workday e o portal da Stone. Quase tudo por API pública, sem abrir navegador.
+  - title: 76 fontes configuradas
+    details: Gupy, Greenhouse, Lever, Ashby, Workday, GFT e Stone. A lista completa fica na configuração; a GFT tem também um feed parcial.
     link: /arquitetura/fontes
   - title: Pontuação do seu perfil
     details: Título, tecnologia, senioridade e elegibilidade viram uma nota de 0 a 100 e um veredito, editáveis em profile.json.

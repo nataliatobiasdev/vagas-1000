@@ -3,7 +3,7 @@
 [![CI](https://github.com/nataliatobiasdev/vagas-1000/actions/workflows/ci.yml/badge.svg)](https://github.com/nataliatobiasdev/vagas-1000/actions/workflows/ci.yml)
 [![Docs](https://github.com/nataliatobiasdev/vagas-1000/actions/workflows/docs.yml/badge.svg)](https://nataliatobiasdev.github.io/vagas-1000/)
 
-App desktop para Windows que **captura as vagas de TI de 54 empresas**, pontua cada uma pelo seu perfil
+App desktop para Windows que consulta **76 fontes configuradas** de vagas de TI, pontua cada uma pelo seu perfil
 (título, tecnologia, senioridade e se você pode aplicar do Brasil) e entrega um **painel offline** com o
 que vale a pena. Quase tudo roda por API pública, sem abrir navegador; só a Stone usa Chrome.
 
@@ -27,6 +27,8 @@ Versões em [SemVer](https://semver.org/lang/pt-BR/) com tag `vX.Y.Z`, CHANGELOG
 branch → Pull Request → CI verde → merge ([Versionamento](docs/versionamento.md)).
 
 ## Empresas
+
+O cadastro da versão 1.7.1 tem 76 fontes: 75 empresas/portais e um feed parcial adicional da GFT. A lista completa e atual fica em [config/companies.json](config/companies.json). A tabela abaixo registra as 54 empresas da base original; a versão 1.7.0 acrescentou fontes como GFT, SysMap, Compass, Claranet e brightwheel. O feed complementar da GFT entrou na 1.7.1.
 
 | Empresa | Portal | Adaptador | Nota composta |
 |---|---|---|---|
@@ -86,12 +88,11 @@ branch → Pull Request → CI verde → merge ([Versionamento](docs/versionamen
 | Cacau Show (alimentos) | cacaushow.gupy.io | `gupy` | 45,0 |
 
 **Salesforce** entra pelo **Workday** (`/wday/cxs/.../jobs`): lista paginada por POST e descrição por GET.
-O Workday responde 429 quando aceleramos, então o coletor usa backoff (8–24 s) e pausas de 3–6 s.
+O Workday pode responder 429. O coletor usa pausas e retentativas; quando o servidor informa uma espera acima de um minuto, a fonte é adiada para outra execução. A GFT usa listagem paginada e um feed separado com publicações recentes; o feed é parcial e pode repetir vagas da listagem.
 
-### Busca externa (2026-11-16): quem tem vaga mas não tem feed público
+### Busca externa em 16/11/2026: retrato histórico
 
-A varredura na web confirmou mais empregadores. Alguns já entraram por feed público (**Salesforce** via
-Workday, Canonical/Turing via Greenhouse); estes continuam sem feed automatizável:
+A varredura identificou empregadores e limitações observados naquela data. Esse retrato não garante a situação atual; consulte as [fontes configuradas](config/companies.json) e o status de cada execução.
 
 - **EPAM** — Salesforce Architect, Remote in Brazil (careers.epam.com, sistema próprio).
 - **BairesDev** — Go/Python sênior remoto (portal próprio; muitas vagas no LinkedIn).
@@ -205,7 +206,7 @@ python -m unittest discover -s tests -v
 Os parsers rodam contra HTML capturado dos portais reais (`tests/fixtures`).
 
 ## Como funciona
-- `scraper/collectors.py` — um coletor por fonte: API pública (Greenhouse, Lever, Ashby), Gupy (SSR), Workday e Selenium só para a Stone.
+- `scraper/collectors.py` — coletores Greenhouse, Lever, Ashby, Gupy, Workday, GFT e Selenium para a Stone.
 - `scraper/parsers.py` — HTML → `Job` (BeautifulSoup). Seletores estão só aqui.
 - `scraper/filtering.py` — pontuação (título 30 / tecnologia 35 / senioridade 15 / elegibilidade 20) e veredito ELIGIBLE/MAYBE/BLOCKED.
 - `scraper/paths.py` — onde ficam os arquivos (código-fonte × instalado). `scraper/theme.py` — tokens Nevora. `scraper/version.py` — versão.
@@ -248,8 +249,7 @@ Para adicionar uma empresa em `config/companies.json`:
   deixar de fora `Remote - USA`/Europa, `title_exclude` para cortar júnior/vendas e `dedupe_by_title: true`
   para colapsar a mesma vaga publicada em vários países (Sezzle, Clara, Homeward, Engine, Coderio, Luxury Presence).
 - **Gupy** (`gupy` + `board_url`): portal SSR; a lista vem no `__NEXT_DATA__` e a descrição em `/jobs/{id}`.
-- **Outros ATS** (SmartRecruiters, Workable, Workday...): exigem coletor novo. SmartRecruiters tem API
-  pública e é o próximo mais barato; Workday/iCIMS são HTML/JS e os mais frágeis.
+- **Outros ATS**: fontes como SmartRecruiters, Workable e iCIMS exigem avaliação e eventualmente novos coletores. O Workday da Salesforce já possui adaptador próprio.
 
 Regra prática: confira com `python main.py --only <company_id>` antes de rodar a base inteira.
 

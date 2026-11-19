@@ -1,5 +1,7 @@
 # Relatório de testes
 
+Os resultados desta página são um retrato das verificações da base anterior à ampliação das fontes. Eles não comprovam uma execução atual de todas as 76 fontes; consulte os logs e o status de cada execução para verificar a cobertura corrente.
+
 Rodada de 16/11/2026, antes do primeiro lançamento (V1.0). O objetivo foi descobrir o que **não funciona** e como resolver. Cada item diz se foi corrigido nesta rodada ou se segue aberto.
 
 <div class="stats">
