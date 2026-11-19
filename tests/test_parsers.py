@@ -202,7 +202,7 @@ class FilterTests(unittest.TestCase):
     def test_salesforce_senior_brazil_is_eligible(self):
         jobs = self._score("lever_list.html", "ciandt", "CI&T", parsers.parse_lever_list)
         sf = next(j for j in jobs if "Salesforce" in j.title)
-        self.assertEqual(sf.verdict, "ELIGIBLE")
+        self.assertEqual(sf.verdict, "MAYBE")  # lista sem descrição não confirma requisitos
         self.assertIn("SALESFORCE", sf.techs)
 
     def test_intern_us_is_blocked(self):
@@ -227,7 +227,7 @@ class FilterTests(unittest.TestCase):
         from scraper.models import Job
         sf = score_job(Job("c", "C", "lever", "SR/Master Salesforce Architect, Brazil", location="Brazil"), PROFILE)
         net = score_job(Job("c", "C", "lever", "Tech Lead (.NET / Angular), Brazil", location="Brazil"), PROFILE)
-        self.assertEqual(sf.verdict, "ELIGIBLE")
+        self.assertEqual(sf.verdict, "MAYBE")
         self.assertGreater(sf.score, net.score)
 
     def test_generic_techs_hidden_unless_in_title(self):
@@ -252,7 +252,9 @@ class FilterTests(unittest.TestCase):
         self.assertEqual(classify_eligibility("Palo Alto / Miami", "onsite", PROFILE)[0], "BLOCKED")
         self.assertEqual(classify_eligibility("Remote - LATAM", "remote", PROFILE)[0], "ELIGIBLE")
         self.assertEqual(classify_eligibility("Brazil", "remote", PROFILE)[0], "ELIGIBLE")
-        self.assertEqual(classify_eligibility("Remoto", "remote", PROFILE)[0], "ELIGIBLE")
+        self.assertEqual(classify_eligibility("Remoto", "remote", PROFILE)[0], "MAYBE")
+        self.assertEqual(classify_eligibility("LATAM", "", PROFILE)[0], "MAYBE")
+        self.assertEqual(classify_eligibility("Global", "", PROFILE)[0], "MAYBE")
         self.assertEqual(classify_eligibility("Remote", "remote", PROFILE)[0], "MAYBE")
         self.assertTrue(is_brazil_location("São Paulo, SP"))
         self.assertTrue(is_brazil_location("Belo Horizonte, MG"))

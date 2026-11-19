@@ -674,6 +674,203 @@
       "access_code": "BR_HIRING",
       "composite_score": 45.0,
       "fetch_details": false
+    },
+    {
+      "company_id": "caixavidaeprevidencia",
+      "name": "Caixa Vida e Previdência",
+      "adapter": "gupy",
+      "board_url": "https://caixavidaeprevidencia.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "4mk",
+      "name": "4MK Solutions",
+      "adapter": "gupy",
+      "board_url": "https://4mk.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "claranet",
+      "name": "Claranet Brasil",
+      "adapter": "gupy",
+      "board_url": "https://claranet.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "compass",
+      "name": "Compass UOL",
+      "adapter": "gupy",
+      "board_url": "https://compass.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "webjump",
+      "name": "WEBJUMP",
+      "adapter": "gupy",
+      "board_url": "https://webjump.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "softdesign",
+      "name": "SoftDesign",
+      "adapter": "gupy",
+      "board_url": "https://softdesign.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "vivodigital",
+      "name": "Vivo Digital",
+      "adapter": "gupy",
+      "board_url": "https://vivodigital.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "gruposysmap",
+      "name": "Grupo SysMap",
+      "adapter": "gupy",
+      "board_url": "https://gruposysmap.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "numen",
+      "name": "Numen",
+      "adapter": "gupy",
+      "board_url": "https://numen.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "vetta",
+      "name": "Vetta Tecnologia",
+      "adapter": "gupy",
+      "board_url": "https://vetta.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "gaugecarreiras",
+      "name": "Gauge",
+      "adapter": "gupy",
+      "board_url": "https://gaugecarreiras.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "xfckvnq",
+      "name": "AI/R Everymind",
+      "adapter": "gupy",
+      "board_url": "https://xfckvnq.gupy.io",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
+    },
+    {
+      "company_id": "brightwheel",
+      "name": "brightwheel",
+      "adapter": "ashby_api",
+      "board_url": "https://jobs.ashbyhq.com/brightwheel",
+      "board_token": "brightwheel",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": false,
+      "composite_score": 0
+    },
+    {
+      "company_id": "leanlayer",
+      "name": "Lean Layer",
+      "adapter": "ashby_api",
+      "board_url": "https://jobs.ashbyhq.com/leanlayer",
+      "board_token": "leanlayer",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": false,
+      "composite_score": 0
+    },
+    {
+      "company_id": "collective",
+      "name": "Collective",
+      "adapter": "ashby_api",
+      "board_url": "https://jobs.ashbyhq.com/collective",
+      "board_token": "collective",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": false,
+      "composite_score": 0
+    },
+    {
+      "company_id": "truelogic",
+      "name": "Truelogic",
+      "adapter": "ashby_api",
+      "board_url": "https://jobs.ashbyhq.com/truelogic",
+      "board_token": "truelogic",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": false,
+      "composite_score": 0
+    },
+    {
+      "company_id": "go-nimbly",
+      "name": "Go Nimbly",
+      "adapter": "ashby_api",
+      "board_url": "https://jobs.ashbyhq.com/go-nimbly",
+      "board_token": "go-nimbly",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": false,
+      "composite_score": 0
+    },
+    {
+      "company_id": "andela",
+      "name": "Andela",
+      "adapter": "ashby_api",
+      "board_url": "https://jobs.ashbyhq.com/andela",
+      "board_token": "andela",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": false,
+      "composite_score": 0
+    },
+    {
+      "company_id": "sisense",
+      "name": "Sisense",
+      "adapter": "ashby_api",
+      "board_url": "https://jobs.ashbyhq.com/sisense",
+      "board_token": "sisense",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": false,
+      "composite_score": 0
+    },
+    {
+      "company_id": "creatoriq",
+      "name": "CreatorIQ",
+      "adapter": "ashby_api",
+      "board_url": "https://jobs.ashbyhq.com/creatoriq",
+      "board_token": "creatoriq",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": false,
+      "composite_score": 0
+    },
+    {
+      "company_id": "gft",
+      "name": "GFT Technologies",
+      "adapter": "gft",
+      "board_url": "https://jobs.gft.com/go/brazil/4412501/",
+      "title_include": "salesforce|\\bcrm\\b|apex|\\blwc\\b|mulesoft|developer|desenvolv|engineer|engenheir|software|architect|arquitet|tech lead|cloud|integra|data|dados|python|golang|backend|back.end|full.?stack|sistemas|plataforma|platform|tecnologia|security|seguran|devops|\\bsre\\b|quality|\\bqa\\b|test|consultor|especialista|analista",
+      "fetch_details": true,
+      "composite_score": 0
     }
   ]
 }
