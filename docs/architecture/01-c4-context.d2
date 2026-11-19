@@ -1,0 +1,16 @@
+direction: right
+vars: {
+  d2-config: {
+    theme-id: 200
+    layout-engine: elk
+  }
+}
+pessoa: "Pessoa usuária\nWindows" { shape: person }
+vagas: "vagas1000\nSistema desktop local" { shape: rectangle }
+portais: "Portais de emprego\nGupy · Greenhouse · Lever\nAshby · Workday · GFT · Stone" { shape: rectangle }
+cam: "CAM\nAplicativo local opcional" { shape: rectangle }
+linkedin: "LinkedIn\nBusca opcional pelo código-fonte" { shape: rectangle }
+pessoa -> vagas: "Inicia coleta, importa e acompanha"
+vagas -> portais: "HTTPS · leitura de vagas"
+vagas -> cam: "SQLite local · vaga pendente"
+vagas -> linkedin: "Chrome via CDP local :9222; HTTPS ao LinkedIn\nSomente código-fonte"

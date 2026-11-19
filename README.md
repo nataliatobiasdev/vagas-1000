@@ -8,7 +8,7 @@ App desktop para Windows que **captura as vagas de TI de 54 empresas**, pontua c
 que vale a pena. Quase tudo roda por API pública, sem abrir navegador; só a Stone usa Chrome.
 
 **Documentação:** <https://nataliatobiasdev.github.io/vagas-1000/> · **Instalador:** [Releases](https://github.com/nataliatobiasdev/vagas-1000/releases)
-· **Relatório de testes:** [docs/qualidade/relatorio.md](docs/qualidade/relatorio.md) · **Mudanças:** [CHANGELOG.md](CHANGELOG.md)
+· **Arquitetura e operação:** [docs/operacao.md](docs/operacao.md) · **Mudanças:** [CHANGELOG.md](CHANGELOG.md)
 
 ## Instalar
 
@@ -17,14 +17,14 @@ que vale a pena. Quase tudo roda por API pública, sem abrir navegador; só a St
 2. Abra o **vagas1000** pelo atalho e clique em **Atualizar base**.
 
 Seus dados ficam em `%APPDATA%\vagas1000` e **nunca** são apagados ao desinstalar. Precisa de Google Chrome só para a Stone.
-Para rodar do código-fonte (Python 3.9+): `instalar.bat`. Detalhes em [Instalação](docs/guia/instalacao.md).
+Para rodar do código-fonte (Python 3.9+): `instalar.bat`. Detalhes em [Build e operação](docs/operacao.md).
 
 ## Interface e versões
 
 A interface segue o design system **Nevora** (violeta e teal sobre neutros escuros; Space Grotesk, Inter e
 JetBrains Mono empacotadas), igual ao [CAM](https://github.com/nataliatobiasdev/agregador-carreiras).
 Versões em [SemVer](https://semver.org/lang/pt-BR/) com tag `vX.Y.Z`, CHANGELOG e instalador na Release; o fluxo é
-branch → Pull Request → CI verde → merge ([Versionamento](docs/versionamento.md)).
+branch → Pull Request → CI verde → merge ([Build e operação](docs/operacao.md)).
 
 ## Empresas
 
@@ -169,7 +169,7 @@ com a empresa em extração, progresso (“12 de 54”), tempo e erros. Logs: `l
 **Linha de comando:** `run.bat` (captura + painel), `run.bat --show --only stone`, `python main.py --painel`.
 
 Saída em `out/`: `vagas-latest.json`, `vagas-latest.csv`, `dashboard.html` e cópias com data/hora
-(as **60 execuções mais recentes**). Desenvolvimento, empacotamento e testes: [Rodar e contribuir](docs/guia/desenvolvimento.md).
+(as **60 execuções mais recentes**). Desenvolvimento, empacotamento e testes: [Build e operação](docs/operacao.md).
 
 ## LinkedIn (modo seguro, opcional)
 

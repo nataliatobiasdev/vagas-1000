@@ -1,43 +1,14 @@
----
-layout: home
-title: Início
-hero:
-  name: vagas1000
-  text: Documentação técnica
-  tagline: App desktop Windows que captura vagas de TI de 54 empresas, pontua pelo seu perfil e entrega um painel offline com o que dá para aplicar.
-  image:
-    src: /logo.png
-    alt: Ícone do vagas1000, uma lupa em gradiente violeta e teal
-  actions:
-    - theme: brand
-      text: Instalar
-      link: /guia/instalacao
-    - theme: alt
-      text: Visão geral
-      link: /guia/visao
-    - theme: alt
-      text: Ver no GitHub
-      link: https://github.com/nataliatobiasdev/vagas-1000
-features:
-  - title: 54 empresas, 6 fontes
-    details: Gupy, Greenhouse, Lever, Ashby, Workday e o portal da Stone. Quase tudo por API pública, sem abrir navegador.
-    link: /arquitetura/fontes
-  - title: Pontuação do seu perfil
-    details: Título, tecnologia, senioridade e elegibilidade viram uma nota de 0 a 100 e um veredito, editáveis em profile.json.
-    link: /arquitetura/pontuacao
-  - title: Painel offline
-    details: Um HTML único com filtros, histórico de execuções e novas vagas desde a última coleta. Sem internet, sem servidor.
-    link: /arquitetura/dados
-  - title: Acompanhe no CAM
-    details: Envie uma vaga ao CAM e acompanhe no painel quais vagas foram salvas ou já tiveram candidatura registrada.
-    link: /guia/uso#acompanhar-no-cam
-  - title: Instalador por usuário
-    details: Instalador NSIS sem administrador, gerado no CI e publicado a cada tag. Seus dados ficam em %APPDATA%\vagas1000.
-    link: /guia/instalacao
-  - title: Design system Nevora
-    details: Violeta e teal sobre neutros escuros, Space Grotesk, Inter e JetBrains Mono empacotadas, na janela e no painel.
-    link: /guia/identidade-visual
-  - title: Testado de verdade
-    details: Testes offline, verificações de coleta e execução do .exe empacotado. O relatório apresenta os resultados e limites.
-    link: /qualidade/relatorio
----
+# vagas1000
+
+O vagas1000 é um aplicativo desktop para Windows que consulta fontes de vagas, normaliza e pontua resultados, grava histórico local e apresenta um painel HTML. A interface Tk, a coleta e o painel WebView2 são executados em processos distintos no modo empacotado. A integração opcional com o CAM escreve uma vaga pendente no SQLite local desse aplicativo.
+
+**Linha de base auditada:** [`v1.7.1`](https://github.com/nataliatobiasdev/vagas-1000/tree/v1.7.1), commit `5beaa45`, em 19/11/2026. O documento descreve implementação observada, não uma arquitetura pretendida.
+
+| Seção | Conteúdo |
+| --- | --- |
+| [Visões estruturais](/architecture/) | Contexto C4, contêineres e sequência em D2 |
+| [Contratos e dados](/contratos) | Processos, arquivos, rede e integração CAM |
+| [Build e operação](/operacao) | Empacotamento Windows, release e limites |
+| [Decisões arquiteturais](/adr/) | ADRs retrospectivos separados das visões |
+
+[Código-fonte](https://github.com/nataliatobiasdev/vagas-1000) · [Releases e instalador](https://github.com/nataliatobiasdev/vagas-1000/releases) · [Documentação do CAM](https://nataliatobiasdev.github.io/agregador-carreiras/)
