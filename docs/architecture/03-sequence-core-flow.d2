@@ -1,0 +1,26 @@
+direction: right
+vars: {
+  d2-config: {
+    theme-id: 200
+    layout-engine: elk
+  }
+}
+fluxo: "Atualizar base de vagas" {
+  shape: sequence_diagram
+  pessoa: "Pessoa usuária"
+  ui: "app.py · Tk"
+  processo: "--scrape · main.py / runner"
+  fonte: "Portal de vagas"
+  db: "SQLite vagas.db"
+  arquivos: "out/status.json e dashboard.html"
+  pessoa -> ui: "Seleciona Atualizar base"
+  ui -> processo: "subprocess.Popen('--scrape', '--no-open')"
+  processo -> arquivos: "Escreve status.json"
+  processo -> fonte: "HTTPS: lista e detalhes"
+  fonte -> processo: "HTML / JSON / RSS ou erro"
+  processo -> processo: "Normaliza, filtra e pontua"
+  processo -> db: "save_run: vagas e status por fonte"
+  processo -> arquivos: "Regenera dashboard.html e status.json"
+  ui -> arquivos: "Lê progresso e resultado"
+  ui -> pessoa: "Mostra quantidade e erros"
+}

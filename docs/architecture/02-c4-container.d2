@@ -1,0 +1,30 @@
+direction: right
+vars: {
+  d2-config: {
+    theme-id: 200
+    layout-engine: elk
+  }
+}
+pessoa: "Pessoa usuária" { shape: person }
+portais: "Portais de vagas\nHTTPS" { shape: rectangle }
+host_windows: "Ambiente Cliente (Windows OS)" {
+  tk: "Interface principal\nTk · app.py" { shape: rectangle }
+  coleta: "Processo de coleta\n--scrape · runner · coletores" { shape: rectangle }
+  painel: "Processo do painel\n--janela-painel · pywebview / WebView2" { shape: rectangle }
+  chrome: "Chrome + ChromeDriver\nSelenium · Stone" { shape: rectangle }
+  db: "vagas.db\nSQLite" { shape: cylinder }
+  arquivos: "config/ · out/ · logs/\n%APPDATA%/vagas1000" { shape: cylinder }
+  camdb: "cam.db\n%APPDATA%/CAM" { shape: cylinder }
+  tk -> coleta: "subprocess.Popen · argumentos"
+  coleta -> arquivos: "status.json · logs · dashboard.html"
+  coleta -> db: "SQLite · grava execução"
+  coleta -> chrome: "Selenium WebDriver · HTTP local"
+  tk -> painel: "subprocess.Popen · HWND / argumentos"
+  tk -> arquivos: "Lê progresso e grava panel-cmd.json"
+  painel -> arquivos: "Lê dashboard.html e panel-cmd.json"
+  painel -> db: "SQLite · payload e painel"
+  painel -> camdb: "SQLite · vagas1000_inbox"
+}
+pessoa -> host_windows.tk: "Atualiza e acompanha"
+host_windows.coleta -> portais: "HTTPS · APIs / HTML / RSS"
+host_windows.chrome -> portais: "HTTPS · portal Stone"
