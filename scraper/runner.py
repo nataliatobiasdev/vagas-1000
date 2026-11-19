@@ -4,6 +4,7 @@ import csv
 import json
 import logging
 import time
+import urllib.error
 from datetime import datetime
 from pathlib import Path
 
@@ -37,6 +38,17 @@ CSV_FIELDS = ["company_name", "title", "verdict", "score", "location", "workplac
 
 def load_json(p: Path) -> dict:
     return json.loads(p.read_text(encoding="utf-8"))
+
+
+def source_error_message(err: Exception) -> str:
+    if isinstance(err, urllib.error.HTTPError):
+        if err.code == 403:
+            return 'HTTP 403: o portal recusou o acesso. Vagas anteriores preservadas; tente novamente mais tarde.'
+        if err.code == 429:
+            retry_after = err.headers.get('Retry-After') if err.headers else None
+            wait = f' O servidor informou Retry-After: {retry_after}.' if retry_after else ''
+            return f'HTTP 429: o portal limitou as consultas.{wait} Vagas anteriores preservadas; tente novamente mais tarde.'
+    return f'{type(err).__name__}: {err}'
 
 
 def collect_one(collector, driver, cfg: dict, driver_factory=None, retries: int = 1):
@@ -106,10 +118,11 @@ def run(driver, only: list[str] | None = None, out_dir: Path | None = None,
             if err is not None:             # uma empresa falhar não derruba as outras
                 log.error("[%s] falhou após %.1fs: %s: %s", c["company_id"], elapsed,
                           type(err).__name__, err, exc_info=err)
-                status[c["company_id"]] = {"ok": False, "error": f"{type(err).__name__}: {err}",
+                message = source_error_message(err)
+                status[c["company_id"]] = {"ok": False, "error": message,
                                            "seconds": round(elapsed, 1)}
                 progress["errors"].append({"company_id": c["company_id"], "name": c["name"],
-                                           "error": f"{type(err).__name__}: {err}"})
+                                           "error": message})
             else:
                 log.info("[%s] %d vagas em %.1fs", c["company_id"], len(got), elapsed)
                 status[c["company_id"]] = {"ok": True, "count": len(got), "seconds": round(elapsed, 1)}

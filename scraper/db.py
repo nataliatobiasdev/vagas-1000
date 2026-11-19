@@ -276,10 +276,11 @@ def save_run(conn: sqlite3.Connection, jobs: list[Job], status: dict[str, dict],
                 new_count += 1
 
         closed_count = 0
+        partial_sources = {c['company_id'] for c in (companies or []) if c.get('partial_feed')}
         for cid, st in status.items():
             conn.execute("INSERT OR REPLACE INTO run_companies(run_id,company_id,ok,job_count,error) VALUES(?,?,?,?,?)",
                          (run_id, cid, 1 if st.get("ok") else 0, st.get("count", 0), st.get("error")))
-            if st.get("ok") and st.get("count", 0) > 0:
+            if st.get("ok") and st.get("count", 0) > 0 and cid not in partial_sources:
                 gone = conn.execute("SELECT job_key, verdict, score FROM jobs WHERE company_id=? AND status='open' "
                                     "AND last_run_id<>?", (cid, run_id)).fetchall()
                 cur = conn.execute("UPDATE jobs SET status='closed', closed_run_id=?, closed_at=? "
@@ -287,7 +288,7 @@ def save_run(conn: sqlite3.Connection, jobs: list[Job], status: dict[str, dict],
                 closed_count += cur.rowcount
                 for g in gone:
                     history.on_job_closed(conn, day, g["job_key"], cid, g["verdict"], g["score"], run_id, now)
-            elif st.get("ok"):
+            elif st.get("ok") and cid not in partial_sources:
                 log.warning("[%s] 0 vagas capturadas: nenhuma vaga anterior foi marcada como encerrada", cid)
 
         eligible = sum(1 for j in jobs if j.verdict == "ELIGIBLE")

@@ -79,8 +79,22 @@ class HostCircuitBreakerTests(unittest.TestCase):
         self.assertEqual(collectors._retry_wait(err(), 0), 10.0)
         self.assertEqual(collectors._retry_wait(err(), 1), 20.0)
         self.assertEqual(collectors._retry_wait(err("45"), 0), 45.0)
-        self.assertEqual(collectors._retry_wait(err("999"), 0), 60.0)               # teto
+        self.assertEqual(collectors._retry_wait(err("999"), 0), 999.0)              # não antecipa Retry-After
         self.assertEqual(collectors._retry_wait(TimeoutError("x"), 0), 2.0)
+
+    def test_403_is_not_retried(self):
+        e = urllib.error.HTTPError('https://jobs.gft.com', 403, 'Forbidden', {}, None)
+        with mock.patch.object(collectors.urllib.request, 'urlopen', side_effect=e) as op:
+            with self.assertRaises(urllib.error.HTTPError):
+                collectors._get_text('https://jobs.gft.com', attempts=3)
+            self.assertEqual(op.call_count, 1)
+
+    def test_long_retry_after_is_deferred_without_retry(self):
+        e = urllib.error.HTTPError('https://x', 429, 'Too Many Requests', {'Retry-After': '120'}, None)
+        with mock.patch.object(collectors.urllib.request, 'urlopen', side_effect=e) as op:
+            with self.assertRaises(urllib.error.HTTPError):
+                collectors._get_text('https://x', attempts=3)
+            self.assertEqual(op.call_count, 1)
 
     def test_server_errors_5xx_also_open_the_breaker(self):
         """Durante a queda da Lever (17/11) a API respondia 500/502/504 em ~15 s: o disjuntor só olhava timeout."""

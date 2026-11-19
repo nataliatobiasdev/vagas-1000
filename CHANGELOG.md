@@ -2,6 +2,15 @@
 
 Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.7.1] - 2026-11-19
+
+### Adicionado
+- Feed público da GFT como fonte complementar parcial: traz as publicações recentes e não encerra vagas apenas porque deixaram de aparecer no feed. A listagem completa permanece separada; uma vaga pode aparecer nas duas fontes.
+
+### Corrigido
+- Uma resposta HTTP 403 encerra a tentativa sem insistência. Respostas 429 respeitam o `Retry-After`; quando a espera supera um minuto, a fonte é adiada para outra execução.
+- Mensagens de erro indicam o bloqueio ou a limitação e informam que as vagas anteriores foram preservadas. A listagem completa da GFT pode continuar indisponível se o portal responder 403.
+
 ## [1.7.0] - 2026-11-19
 
 ### Adicionado
