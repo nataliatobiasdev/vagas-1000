@@ -306,11 +306,11 @@ details.sec>summary::-webkit-details-marker{display:none} details.sec[open]>summ
     <div class="fbar">
       <div class="filters main">
         <input type="search" id="q" placeholder="Buscar título, empresa, local…" aria-label="Buscar">
-        <select id="fVerdict" aria-label="Veredito"><option value="EM">Elegíveis + Talvez</option><option value="E">Só elegíveis</option><option value="ALL">Todas</option></select>
+        <select id="fVerdict" aria-label="Veredito"><option value="EM">Para análise + pendências</option><option value="E">Somente para análise</option><option value="ALL">Todas</option></select>
         <button class="btn" id="advBtn" type="button" aria-expanded="false" aria-controls="adv"><svg class="i"><use href="#i-filter"/></svg>Filtros <span class="n" id="advN" hidden></span></button>
         <span class="sub" id="count"></span>
         <span style="flex:1"></span>
-        <select id="fSort" aria-label="Ordenar"><option value="score">Maior nota</option><option value="recent">Mais recentes</option><option value="posted">Publicação</option><option value="company">Empresa</option></select>
+        <select id="fSort" aria-label="Ordenar"><option value="score">Prioridade e nota</option><option value="recent">Mais recentes</option><option value="posted">Publicação</option><option value="company">Empresa</option></select>
         <div class="seg" id="viewSeg"><button type="button" data-v="cards" aria-pressed="true"><svg class="i"><use href="#i-grid"/></svg>Cards</button><button type="button" data-v="table" aria-pressed="false"><svg class="i"><use href="#i-list"/></svg>Tabela</button></div>
       </div>
       <div class="adv" id="adv" hidden role="group" aria-label="Filtros avançados">
@@ -394,7 +394,9 @@ if (hashNow().startsWith("#embed|")) {          // aberto dentro do app: "#embed
 window.addEventListener("hashchange", () => { if (hashNow().startsWith("#embed|")) location.reload(); });
 const DATA = /*__DATA__*/null;
 const TECH = {SALESFORCE:"Salesforce",AWS:"AWS",GO:"Go",PYTHON:"Python",TYPESCRIPT_NODE:"TypeScript/Node",ANGULAR_REACT:"Angular/React",GRAPHQL:"GraphQL",AI_GENAI:"IA/GenAI",INTEGRATION_ARCH:"Integração",JAVA:"Java",DOTNET:".NET"};
-const VERD = {ELIGIBLE:"Elegível",MAYBE:"Talvez",BLOCKED:"Bloqueada"};
+// match-projection-v1: a avaliação é local, provisória e preserva o banco e o histórico.
+const VERD = {ELIGIBLE:"Para análise",MAYBE:"Pendente",BLOCKED:"Baixa aderência ou incompatível"};
+const matchLabel = j => ({"ANÁLISE MANUAL":"Para análise", "CONDICIONAL":"Condicional", "INFORMAÇÕES INSUFICIENTES":"Informações insuficientes", "BAIXA ADERÊNCIA":"Baixa aderência", "INCOMPATÍVEL":"Incompatível"}[j.match_category] || VERD[j.verdict] || j.verdict);
 const VORD = {ELIGIBLE:0,MAYBE:1,BLOCKED:2};
 const WORK = {remote:"Remoto",hybrid:"Híbrido",onsite:"Presencial"};
 const COMMIT = {FullTime:"Tempo integral",PartTime:"Meio período",Contract:"Contrato",Intern:"Estágio",Temporary:"Temporário"};
@@ -431,7 +433,7 @@ const last = DATA.runs[0];
 $("#sub").textContent = last ? `Execução #${last.run_id} em ${fmtDate(last.started_at)} · ${jobs.length.toLocaleString("pt-BR")} vagas guardadas` : "Nenhuma execução ainda";
 const elig = open.filter(j => j.verdict === "ELIGIBLE").length;
 const kpi = (n, l, cls = "", tip = "") => `<div class="kpi ${cls}"${tip ? ` title="${tip}"` : ""}><b>${n.toLocaleString("pt-BR")}</b><span>${l}</span></div>`;
-$("#kpis").innerHTML = kpi(open.length,"vagas abertas") + kpi(elig,"elegíveis","hot","Vagas abertas que passam no seu perfil") +
+$("#kpis").innerHTML = kpi(open.length,"vagas abertas") + kpi(elig,"para análise","hot","Triagem por regras; requisitos precisam de revisão") +
   kpi(open.filter(j=>j.is_new).length,"novas na execução","","Novas na última execução");
 const nCos = DATA.companies.filter(c => !c.imported).length, nClosed = jobs.length - open.length;
 const badCo = new Set(DATA.companies.filter(c => c.ok === false).map(c => c.company_id));       // fonte que não respondeu na última leitura
@@ -479,7 +481,7 @@ const rowC = (c, v, max) => `<div class="barrow click" data-co="${esc(c)}"><span
   const dist = {ELIGIBLE:0,MAYBE:0,BLOCKED:0}; all.forEach(([,v]) => { for(const k in dist) dist[k] += v[k]; });
   $("#sumCompany").textContent = `${all.length} empresas · ${tot.toLocaleString("pt-BR")} vagas`;
   $("#miniCompany").innerHTML = ["ELIGIBLE","MAYBE","BLOCKED"].map(k => `<i style="width:${dist[k]/(tot||1)*100}%;background:${col[k]}"></i>`).join("");
-  $("#miniCompany").title = `${dist.ELIGIBLE} elegíveis · ${dist.MAYBE} talvez · ${dist.BLOCKED} bloqueadas`;
+  $("#miniCompany").title = `${dist.ELIGIBLE} para análise · ${dist.MAYBE} pendentes · ${dist.BLOCKED} baixa aderência ou incompatíveis`;
   let s = "total";
   const draw = () => { const q = $("#coQ").value.trim().toLowerCase();
     const rows = all.filter(([c]) => !q || c.toLowerCase().includes(q)).sort((a,b) => s==="name" ? a[0].localeCompare(b[0],"pt-BR") : s==="elig" ? b[1].ELIGIBLE - a[1].ELIGIBLE || sum(b[1]) - sum(a[1]) : sum(b[1]) - sum(a[1]));
@@ -497,7 +499,7 @@ document.addEventListener("click", e => { const r = e.target.closest("[data-co]"
   open.forEach(j => j.techs.forEach(t => { cntAll[t] = (cntAll[t]||0)+1; if (j.verdict==="ELIGIBLE") cnt[t] = (cnt[t]||0)+1; }));
   const rows = Object.entries(cnt).sort((a,b) => b[1]-a[1]), max = rows.length ? rows[0][1] : 1;
   $("#sumTech").textContent = rows.length ? rows.slice(0,3).map(([t,n]) => `${TECH[t]||t} ${n}`).join(" · ") : "sem dados";
-  $("#techList").innerHTML = rows.map(([t,n]) => `<div class="barrow click" data-tech="${t}"><span class="lbl">${esc(TECH[t]||t)}</span><div class="track"><div class="single" data-t="${esc(TECH[t]||t)}: ${n} elegíveis de ${cntAll[t]} abertas" style="width:${n/max*100}%"></div></div><span class="num">${n}<span class="muted">/${cntAll[t]}</span></span></div>`).join("") || '<div class="muted">Sem dados</div>';
+  $("#techList").innerHTML = rows.map(([t,n]) => `<div class="barrow click" data-tech="${t}"><span class="lbl">${esc(TECH[t]||t)}</span><div class="track"><div class="single" data-t="${esc(TECH[t]||t)}: ${n} para análise de ${cntAll[t]} abertas" style="width:${n/max*100}%"></div></div><span class="num">${n}<span class="muted">/${cntAll[t]}</span></span></div>`).join("") || '<div class="muted">Sem dados</div>';
 })();
 document.addEventListener("mousemove", e => { const t = e.target.closest && e.target.closest("[data-t]");
   if (t) { tipEl.textContent = t.dataset.t; tipEl.style.display = "block"; tipEl.style.left = (e.clientX+12)+"px"; tipEl.style.top = (e.clientY+12)+"px"; } else tipEl.style.display = "none"; });
@@ -546,7 +548,7 @@ function filtered(){
 }
 function sorted(rows){
   const k = $("#fSort").value;
-  const cmp = { score:(a,b) => b.score-a.score, recent:(a,b) => String(b.first_seen).localeCompare(a.first_seen) || b.score-a.score,
+  const cmp = { score:(a,b) => b.match_order-a.match_order || (b.match_track === 'principal')-(a.match_track === 'principal') || b.score-a.score, recent:(a,b) => String(b.first_seen).localeCompare(a.first_seen) || b.score-a.score,
     posted:(a,b) => String(b.posted_at||"").localeCompare(a.posted_at||"") || b.score-a.score, company:(a,b) => a.company.localeCompare(b.company,"pt-BR") || b.score-a.score }[k];
   return rows.sort(state.view === "table" && state.sortK !== "score" ? tableCmp : cmp);
 }
@@ -566,7 +568,7 @@ function card(j){
     <div class="c-meta"><span>${ic("pin")}${esc(j.location||"Local não informado")}${j.nloc>1?` <span class="muted">+${j.nloc-1}</span>`:""}</span>
       ${wp?`<span>${ic("globe")}${wp}</span>`:""}${ct?`<span>${ic("brief")}${esc(ct)}</span>`:""}${posted}</div>
     <div class="c-chips">${sal}${j.techs.slice(0,4).map(t => `<span class="chip">${esc(TECH[t]||t)}</span>`).join("")}</div>
-    <div class="c-foot"><span class="badge b-${j.verdict}">${VERD[j.verdict]||j.verdict}</span>${j.is_new?'<span class="badge b-new">Nova</span>':""}${j.status==="closed"?'<span class="badge b-closed">Encerrada</span>':""}
+    <div class="c-foot"><span class="badge b-${j.verdict}">${matchLabel(j)}</span>${j.is_new?'<span class="badge b-new">Nova</span>':""}${j.status==="closed"?'<span class="badge b-closed">Encerrada</span>':""}
       ${j.versions>1?`<span class="badge b-n" data-t="A fonte editou esta vaga ${j.versions-1}×">v${j.versions}</span>`:""}${camBadge(j)}<span class="when">vista ${ago(j.first_seen)}</span></div></a>`;
 }
 function render(){
@@ -580,7 +582,7 @@ function render(){
   const th = (k,l) => `<th data-k="${k}" tabindex="0" title="Ordenar por ${l.toLowerCase()}" ${state.sortK===k?`aria-sort="${tableDir===1?"ascending":"descending"}"`:""}>${l}</th>`;
   $("#out").innerHTML = `<div class="tablewrap"><table><thead><tr>${th("score","Nota")}${th("verdict","Veredito")}${th("company","Empresa")}${th("title","Vaga")}${th("location","Local")}<th>Tecnologias</th>${th("first_seen","Vista em")}</tr></thead><tbody>` +
     shown.map(j => `<tr class="row" data-go="${esc(j.key)}"><td class="sc"><span class="scbar" style="width:${Math.max(2,j.score*0.4)}px"></span>${j.score.toFixed(0)}</td>
-      <td><span class="badge b-${j.verdict}">${VERD[j.verdict]||j.verdict}</span></td><td>${esc(j.company)}</td>
+      <td><span class="badge b-${j.verdict}">${matchLabel(j)}</span></td><td>${esc(j.company)}</td>
       <td>${esc(j.title)}${j.is_new?' <span class="badge b-new">Nova</span>':""}${j.status==="closed"?' <span class="badge b-closed">Encerrada</span>':""} ${camBadge(j)}</td>
       <td>${esc(j.location)}<div class="muted">${esc(WORK[j.workplace]||"")}</div></td><td>${j.techs.map(t=>esc(TECH[t]||t)).join(", ")}</td><td class="muted">${fmtDate(j.first_seen)}</td></tr>`).join("") + "</tbody></table></div>";
 }
@@ -674,7 +676,7 @@ function showJob(key, verN){
       <div style="flex:1;min-width:0"><div class="sub">${esc(j.company)}</div><h1>${esc(R.title || j.title)}</h1>
         <div class="j-sub"><span>${ic("pin")}${esc(locs.join(" · ") || "Local não informado")}</span>${j.workplace?`<span>${ic("globe")}${WORK[R.workplace||j.workplace]||""}</span>`:""}
           ${(R.commitment||j.commitment)?`<span>${ic("brief")}${esc(COMMIT[R.commitment||j.commitment]||R.commitment||j.commitment)}</span>`:""}${sal?`<span>${ic("cash")}${esc(sal)}</span>`:""}</div>
-        <div class="j-badges"><span class="badge b-${j.verdict}">${VERD[j.verdict]||j.verdict}</span><span class="badge ${j.status==="open"?"b-open":"b-closed"}">${j.status==="open"?"Aberta":"Encerrada"}</span>${j.is_new?'<span class="badge b-new">Nova</span>':""}
+        <div class="j-badges"><span class="badge b-${j.verdict}">${matchLabel(j)}</span><span class="badge ${j.status==="open"?"b-open":"b-closed"}">${j.status==="open"?"Aberta":"Encerrada"}</span>${j.is_new?'<span class="badge b-new">Nova</span>':""}
           ${j.techs.map(t => `<span class="chip">${esc(TECH[t]||t)}</span>`).join("")}</div></div>
       <div class="score" style="--p:${Math.round(j.score)}" data-t="Nota ${j.score.toFixed(0)} de 100"><span>${j.score.toFixed(0)}</span></div></div>
     <div class="j-grid"><div>

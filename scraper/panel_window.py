@@ -112,7 +112,7 @@ def dashboard_path() -> Path:
     # Rebuild once after upgrading the bundled template; do not rewrite on every
     # poll, because the embedded window watches this file's modification time.
     try:
-        current = out.exists() and 'cam-status-v5' in out.read_text(encoding='utf-8')
+        current = out.exists() and 'match-projection-v1' in out.read_text(encoding='utf-8')
     except OSError:
         current = False
     if not current:

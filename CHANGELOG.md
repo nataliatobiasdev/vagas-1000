@@ -2,6 +2,17 @@
 
 Formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.8.0] - 2026-11-26
+
+### Adicionado
+- O painel calcula uma triagem de match por função, requisitos, senioridade e competências, com trechos da descrição e alertas. Categorias separam análise, condições, dados insuficientes e incompatibilidades.
+- A ordem prioriza a situação da vaga antes da nota. Notas são heurísticas, não probabilidades, e devem ser revisadas com a descrição original.
+- Configuração editável em `config/match_profile.json` na pasta de dados; a avaliação do painel não altera vagas, notas anteriores ou histórico do banco.
+
+### Limitações
+- A extração usa regras locais e pode errar especialmente em requisitos alternativos, localidade e anúncios incompletos. A classificação precisa de revisão manual; não confirma autorização de trabalho, remuneração ou requisitos.
+- As contagens históricas e exportações da captura continuam usando o filtro anterior; o novo match é calculado no painel.
+
 ## [1.7.1] - 2026-11-19
 
 ### Adicionado
