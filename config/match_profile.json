@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "skills": {
+    "salesforce": "profissional", "apex": "profissional", "lwc": "profissional", "aura": "profissional", "flow": "profissional", "experience_cloud": "profissional", "api": "profissional", "cicd": "profissional", "git": "profissional", "architecture": "profissional", "leadership": "profissional", "testing": "profissional", "aws": "informada", "go": "informada", "python": "informada", "angular": "informada", "typescript": "informada", "sql": "informada", "docker": "informada", "ai": "experimenta e aplica", "marketing_cloud": "não comprovada", "personalization": "não comprovada", "oms": "não comprovada", "mulesoft": "não comprovada", "java": "não comprovada", "dotnet": "não comprovada", "omni_studio": "não comprovada", "sap": "não comprovada", "react": "informada", "node": "informada", "fastapi": "não comprovada", "kotlin_android": "não comprovada", "databricks": "não comprovada"
+  },
+  "skill_status_notes": {"messaging": "experiência profissional não confirmada"}
+}

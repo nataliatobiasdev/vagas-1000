@@ -9,6 +9,7 @@ e no arquivo `out/banco-vagas.json` (`python main.py --exportar`).
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import sqlite3
 from datetime import datetime
@@ -16,6 +17,8 @@ from pathlib import Path
 
 from . import paths
 from .filtering import is_brazil_location
+from .match_v2 import assess, VERDICT_ORDER
+from .models import Job
 
 ROOT = paths.HOME
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "dashboard.html"
@@ -75,7 +78,11 @@ def _linkedin_columns(meta: dict) -> dict:
             "posted": meta.get("publicada_original", "")}
 
 
-def collect(conn: sqlite3.Connection) -> dict:
+def collect(conn: sqlite3.Connection, cache: dict | None = None) -> dict:
+    # O ranking é uma projeção reversível: não reclassifica snapshots históricos.
+    match_profile = json.loads(paths.config_file('match_profile.json').read_text(encoding='utf-8'))
+    profile_key = json.dumps(match_profile, sort_keys=True, ensure_ascii=False)
+    used_cache_keys = set()
     runs = [dict(r) for r in conn.execute("SELECT * FROM runs ORDER BY run_id DESC LIMIT 30")]
     last = runs[0]["run_id"] if runs else 0
     versions = _versions(conn)
@@ -84,19 +91,42 @@ def collect(conn: sqlite3.Connection) -> dict:
         locs = _j(r["locations"], [])
         rid = len(records)
         meta = _j(r["metadata"], {})
+        job = Job(company_id=r['company_id'] or '', company_name=r['company_name'] or '',
+                  source=r['source'] or '', title=r['title'] or '', location=r['location'] or '',
+                  area=r['area'] or '', workplace_type=r['workplace_type'] or '', description=r['description'] or '')
+        signature = json.dumps(['match-v1', profile_key, job.title, job.location, job.area,
+                                job.workplace_type, job.description], ensure_ascii=False)
+        cache_key = hashlib.sha256(signature.encode('utf-8')).hexdigest()
+        used_cache_keys.add(cache_key)
+        match = cache.get(cache_key) if cache is not None else None
+        if not isinstance(match, dict) or not {'verdict', 'score', 'track', 'confidence', 'components', 'warnings', 'evidence'} <= match.keys():
+            match = assess(job, match_profile)
+            if cache is not None:
+                cache[cache_key] = match
+        category = match['verdict']
+        # As três classes antigas mantêm filtros e gráficos existentes compatíveis.
+        verdict = ('ELIGIBLE' if category == 'ANÁLISE MANUAL' else
+                   'MAYBE' if category in ('CONDICIONAL', 'INFORMAÇÕES INSUFICIENTES') else 'BLOCKED')
+        reasons = ['Análise automática por regras; não é chance de contratação.',
+                   f"Classificação: {category}; trilha: {match['track']}; confiança: {match['confidence']}."]
+        reasons.extend(f"{name}: {points} pontos" for name, points in match['components'].items())
+        reasons.extend(match['warnings'])
+        reasons.extend(f"{e['skill']} ({e['kind']}): {e['text']}" for e in match['evidence'][:12])
         jobs.append({
             "key": r["job_key"], "rid": rid, "company_id": r["company_id"], "company": r["company_name"],
             "title": r["title"], "url": r["url"], "location": r["location"], "nloc": len(locs), "area": r["area"],
             "team": r["team"] or "", "workplace": r["workplace_type"], "commitment": r["commitment"] or "",
             "salary": r["salary_text"] or "", "posted_at": r["posted_at"] or "",
-            "score": r["score"], "verdict": r["verdict"], "techs": _j(r["techs"], []),
+            "score": match['score'], "verdict": verdict, "techs": _j(r["techs"], []),
+            "match_category": category, "match_order": VERDICT_ORDER[category], "match_track": match['track'],
+            "match_confidence": match['confidence'],
             "first_seen": r["first_seen"], "last_seen": r["last_seen"], "closed_at": r["closed_at"] or "",
             "status": r["status"], "is_new": bool(last > 1 and r["first_run_id"] == last),
             "intl": not is_brazil_location(r["location"]), "versions": r["versions"] or 1,
             "li": _linkedin_columns(meta) if r["source"] == "linkedin" else None,
         })
         records.append({
-            "key": r["job_key"], "source": r["source"], "job_id": r["job_id"], "reasons": _j(r["reasons"], []),
+            "key": r["job_key"], "source": r["source"], "job_id": r["job_id"], "reasons": reasons,
             "description": "" if r["description_html"] else (r["description"] or ""),
             "description_html": r["description_html"] or "", "sections": _j(r["sections"], []),
             "metadata": meta, "locations": locs, "apply_url": r["apply_url"] or "",
@@ -106,6 +136,10 @@ def collect(conn: sqlite3.Connection) -> dict:
             "detail_at": r["detail_at"] or "", "first_run_id": r["first_run_id"], "last_run_id": r["last_run_id"],
             "versions": versions.get(r["job_key"], []), "has_raw": bool(r["raw"]) and r["raw"] != "{}",
         })
+    if cache is not None:
+        for key in list(cache):
+            if key not in used_cache_keys:
+                del cache[key]
     companies = []
     for r in conn.execute(
         # o resultado MAIS RECENTE de cada empresa (não só o da última execução): numa execução parcial (refazer só as que
@@ -144,7 +178,21 @@ def _safe(s: str) -> str:
 def build(conn: sqlite3.Connection, out_path: Path | str | None = None) -> Path:
     out = Path(out_path) if out_path else paths.OUT / "dashboard.html"
     out.parent.mkdir(parents=True, exist_ok=True)
-    data = collect(conn)
+    # Cache descartável: o hash inclui o perfil, a versão do motor e o texto da vaga.
+    cache_path = out.parent / 'match-cache-v1.json'
+    try:
+        cache = json.loads(cache_path.read_text(encoding='utf-8'))
+        if not isinstance(cache, dict):
+            cache = {}
+    except (OSError, ValueError):
+        cache = {}
+    data = collect(conn, cache)
+    try:
+        cache_tmp = cache_path.with_name(cache_path.name + '.tmp')
+        cache_tmp.write_text(json.dumps(cache, ensure_ascii=False), encoding='utf-8')
+        cache_tmp.replace(cache_path)
+    except OSError:
+        pass  # O painel continua funcionando se o cache não puder ser gravado.
     records = data.pop("records")
     payload = _safe(json.dumps(data, ensure_ascii=False))
     rec_tags = "\n".join(f'<script type="application/json" id="rec-{i}">{_safe(json.dumps(r, ensure_ascii=False))}</script>'

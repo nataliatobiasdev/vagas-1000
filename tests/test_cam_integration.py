@@ -41,7 +41,7 @@ class CamIntegrationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             dashboard = out / 'dashboard.html'
-            dashboard.write_text('<!-- cam-status-v5 -->', encoding='utf-8')
+            dashboard.write_text('<!-- match-projection-v1 -->', encoding='utf-8')
             with patch('scraper.panel_window.paths.OUT', out), patch('scraper.db.connect') as connect:
                 self.assertEqual(dashboard_path(), dashboard)
                 connect.assert_not_called()

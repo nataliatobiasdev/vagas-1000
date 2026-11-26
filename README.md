@@ -19,6 +19,12 @@ que vale a pena. Quase tudo roda por API pública, sem abrir navegador; só a St
 Seus dados ficam em `%APPDATA%\vagas1000` e **nunca** são apagados ao desinstalar. Precisa de Google Chrome só para a Stone.
 Para rodar do código-fonte (Python 3.9+): `instalar.bat`. Detalhes em [Build e operação](docs/operacao.md).
 
+## Match no painel
+
+O painel calcula uma nota por regras e mostra sua decomposição, trechos encontrados e pendências. A categoria vem antes da nota na ordenação; uma descrição incompleta ou requisito específico ainda requer conferência. A nota não é chance de contratação e o resultado não confirma autorização de trabalho ou salário.
+
+O perfil editável fica em `%APPDATA%\vagas1000\config\match_profile.json`. Ele é criado a partir do padrão na primeira execução e não é substituído em atualizações. O cálculo é uma projeção do painel: não sobrescreve o banco ou seu histórico; as exportações da captura e métricas históricas continuam usando o filtro anterior.
+
 ## Interface e versões
 
 A interface segue o design system **Nevora** (violeta e teal sobre neutros escuros; Space Grotesk, Inter e
